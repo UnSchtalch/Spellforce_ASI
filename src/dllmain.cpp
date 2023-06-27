@@ -336,7 +336,7 @@ asm(
 
 void __declspec(naked) buildingDoneHook(){
 asm(
-    "cmpb $0xd2, %%al\n\t" //our building ID -5 (???)
+    "cmpb $0xd2, %%al\n\t" //our building ID -4 (???)
     "jne 1f\n\t" //if not our case, just continue
     "jmp *%0\n\t"//jump to XData Filling
     "1: cmpb $0xd1, %%al\n\t" //rewriten comparison
@@ -379,12 +379,12 @@ asm(
     "jne 1f\n\t" //if not our case, just continue
     "movb $0x1, %%al\n\t"
     "pop %%ebp\n\t"
-    "ret \n\t"
+    "ret $0x4\n\t"
     "1: cmpb $0x5, %%cl\n\t" //rewriten comparison
     "jne 2f\n\t"
     "movb $0x1, %%al\n\t"
     "pop %%ebp\n\t"
-    "ret \n\t"
+    "ret $0x4\n\t"
     "2: jmp *%0\n\t":
     : "o"(BUILD_SAWMILL_RET)
     );
@@ -423,6 +423,7 @@ void hookModernVersion()
     BUILD_HAB_S_CONT = ASI::AddrOf(0x31F7F7);
 
     BUILD_SAWMILL_RET = ASI::AddrOf(0x31F2F3);
+    //BUILD_SAWMILL_CONT = ASI::AddrOf(0x31F2F3);
 
     JOB_SAWMILL_SELECT_RET = ASI::AddrOf(0x34A786); // If we are orcs and wanna look for sawmill
     JOB_SAWMILL_SELECT_CONT = ASI::AddrOf(0x34A772); //If we not orcs go here
