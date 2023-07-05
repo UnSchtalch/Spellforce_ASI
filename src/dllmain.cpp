@@ -322,6 +322,10 @@ void hookLegacyVersion()
 unsigned int JOB_LINK_RET;
 unsigned int JOB_LINK_CONT;
 
+unsigned int JOB_SAWMILL_WORK_RET;
+unsigned int JOB_SAWMILL_WORK_CONT;
+
+
 void __declspec(naked) job_link_hook(){
 asm(
     "cmpb $0xd5, %%al\n\t" //our building ID-1 (IDC WHY)
@@ -403,6 +407,16 @@ void __declspec(naked) woodworkerDeliveryHook (){
     );
 }
 
+void __declspec(naked) carpenterDoWorkHook(){
+    asm(
+    "movzbl 0x1a(%%ecx,%%edx), %%eax \n\t" //overwritten by our hook
+    "cmpb $0x5, %%al \n\t"
+    "jne 1f\n\t"
+    "jmp *%0\n\t"
+    "1: jmp *%1\n\t":
+    : "o" (JOB_SAWMILL_WORK_RET), "o" (JOB_SAWMILL_WORK_CONT));
+}
+
 void hookModernVersion()
 {
 
@@ -425,6 +439,10 @@ void hookModernVersion()
     BUILD_SAWMILL_RET = ASI::AddrOf(0x31F2F3);
     //BUILD_SAWMILL_CONT = ASI::AddrOf(0x31F2F3);
 
+    JOB_SAWMILL_WORK_RET = ASI::AddrOf(0x33F316);
+    JOB_SAWMILL_WORK_CONT = ASI::AddrOf(0x33F309);
+
+
     JOB_SAWMILL_SELECT_RET = ASI::AddrOf(0x34A786); // If we are orcs and wanna look for sawmill
     JOB_SAWMILL_SELECT_CONT = ASI::AddrOf(0x34A772); //If we not orcs go here
 
@@ -446,6 +464,8 @@ void hookModernVersion()
     ASI::MemoryRegion mreg9 (ASI::AddrOf(0x31f2EE), 5); //Sawmill hook
 
     ASI::MemoryRegion mreg10 (ASI::AddrOf(0x34A76B), 5); //Sawmill selection hook
+
+    ASI::MemoryRegion mreg11 (ASI::AddrOf(0x33F304), 5); //Sawmill worker hook
 
     ASI::BeginRewrite(mreg);
         *(unsigned char*)(ASI::AddrOf(0x2EC2F1)) = 0xE9;   // jmp instruction
@@ -502,6 +522,11 @@ void hookModernVersion()
         *(int*)(ASI::AddrOf(0x34A76C)) = (unsigned int)(&woodworkerDeliveryHook) - ASI::AddrOf(0x34A770);//jump distance
     ASI::EndRewrite(mreg10);
 
+
+    ASI::BeginRewrite(mreg11);
+        *(unsigned char*)(ASI::AddrOf(0x33F304)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x33F305)) = (unsigned int)(&carpenterDoWorkHook) - ASI::AddrOf(0x33F309);//jump distance
+    ASI::EndRewrite(mreg11);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
