@@ -24,7 +24,7 @@ HWND game_window;
 
 inline void resourceLoadProb(int ** p1, int** p2, int** p3, int p4, int p5)
 {
-    ASI::CallGlobalCDeclFunc<0x4c1aa0, void, int**, int**, int**, int, int>(p1, p2, p3, p4, p5);
+    ASI::CallGlobalCDeclFunc<0xc1aa0, void, int**, int**, int**, int, int>(p1, p2, p3, p4, p5);
 }
 
 inline void init_memory_obj(int * p1)
@@ -32,7 +32,7 @@ inline void init_memory_obj(int * p1)
 
     if (ASI::CheckSFVersion(ASI::SF_154))
     {
-        ASI::CallGlobalCDeclFunc<0x4b7870, void, int *>(p1);
+        ASI::CallGlobalCDeclFunc<0xb7870, void, int *>(p1);
     }
     if (ASI::CheckSFVersion(ASI::SF_161))
     {
@@ -44,7 +44,7 @@ inline void init_memory_string (int* p1, int ** p2)
 {
     if (ASI::CheckSFVersion(ASI::SF_154))
     {
-        ASI::CallGlobalCDeclFunc<0x4b7c60, void, int *, int **>(p1, p2);
+        ASI::CallGlobalCDeclFunc<0xb7c60, void, int *, int **>(p1, p2);
     }
     if (ASI::CheckSFVersion(ASI::SF_161))
     {
@@ -112,7 +112,7 @@ void __stdcall processBuildingData(int** param_l)
             for (std::vector<ASI::BuildingHookData>::iterator it = buildingHoodDataList.begin();
                 it != buildingHoodDataList.end(); ++it)
             {
-                ASI::CallGlobalCDeclFunc<0x4c1aa0, void, int**, int**, char*, int, int>(param_l, (int**)0, (it->name), 0, (ASI::convertIntForLua(it->buildingID)) >> 32); //it works, do not touch
+                ASI::CallGlobalCDeclFunc<0xc1aa0, void, int**, int**, char*, int, int>(param_l, (int**)0, (it->name), 0, (ASI::convertIntForLua(it->buildingID)) >> 32); //it works, do not touch
 
             }
         }
@@ -170,23 +170,24 @@ void __declspec(naked) building_register_hook(){
     
 }
 
-int link_buiding_data = 0x81E9B0; //Dirty hack
+int link_buiding_data; //Dirty hack
 void __declspec(naked) building_link_hook(){
 asm(
-    "cmpb $0xd6, %%al\n\t" //our building ID
-    "jne 1f\n\t"
-    "push $0x0000bb9 \n\t" //341 -- human tower unit, bb9 -- our tower unit
+    "cmpb $0x32, %%al\n\t" //our building ID 
+    "je 1f\n\t"
+    "cmpb $0xd1, %%bl\n\t"
+    "jmp *%0\n\t"
+    "1: push $0x0000bb5 \n\t"
     "push %%edi\n\t"
     "mov %%esi, %%ecx\n\t"
-    "call *%0\n\t"
-    "1: pop %%edi\n\t"//normal "default"
-    "pop %%esi\n\t" 
+    "call *%1\n\t"
+    "pop %%edi\n\t"
+    "pop %%esi\n\t"
     "pop %%ebp\n\t"
     "pop %%ebx\n\t"
-    "add $0x18, %%esp\n\t"
-    "jmp *%1\n\t":
-    : "o"(link_buiding_data),"m"(BUILD_LINK_RET)
-    );
+    "add $0x18,%%esp\n\t"
+    "ret $0x4\n\t":
+    : "o"(BUILD_LINK_RET), "o"(link_buiding_data));
 }
 
 
@@ -232,12 +233,12 @@ void initBuildingData()
 {
     ASI::BuildingHookData bData;
 
-    bData.buildingID = 214;
-    bData.linkedUnitID = 3001;
-    bData.name = "kGdBuildingOrcSawmill\0";
+    bData.buildingID = 50;
+    bData.linkedUnitID = 2997;
+    bData.name = "kGdBuildingOrcSawmill\0"; //fixme
     buildingHoodDataList.push_back(bData);
 
-    bData.buildingID = 215;
+    bData.buildingID = 214;
     bData.linkedUnitID = 0;
     bData.name = "kGdMaxBuildingTypes\0";
     buildingHoodDataList.push_back(bData);
@@ -248,7 +249,8 @@ void hookLegacyVersion()
         BUILD_DATA_RET = ASI::AddrOf(0x001bb33f);
         BUILD_INIT_RET = ASI::AddrOf(0x001d38a1);
 
-        BUILD_LINK_RET = ASI::AddrOf(0x0041E69D); //Unit Linkage RET statement for "default" case
+        BUILD_LINK_RET = ASI::AddrOf(0x0041E02A); //just continue as usual
+        link_buiding_data= ASI::AddrOf(0x41E9B0);
 
         OLD_MAX_BUILDING_VALUE = 0x406AC00000000000;
         NEW_MAX_BUILDING_VALUE = 0x406AE00000000000;
@@ -261,12 +263,9 @@ void hookLegacyVersion()
 
         ASI::MemoryRegion mreg(ASI::AddrOf(0x001bb322), 9);
 
-        ASI::MemoryRegion mreg2(ASI::AddrOf(0x1f9258),1); //Building amount 1st entry
-        ASI::MemoryRegion mreg3(ASI::AddrOf(0x4359cd),1); //Building amount 2nd entry
-
         ASI::MemoryRegion mreg4(ASI::AddrOf(0x1d389c), 5);
 
-        ASI::MemoryRegion mreg5(ASI::AddrOf(0x41E696), 7); //Building <-> unit link "default" statement start
+        ASI::MemoryRegion mreg5(ASI::AddrOf(0x41E024), 6); //Building <-> unit link "default" statement start
 
         ASI::MemoryRegion mreg6(ASI::AddrOf(0x3B7642), 5);
 
@@ -287,19 +286,11 @@ void hookLegacyVersion()
             *(int*)(ASI::AddrOf(0x1d389d)) = (int)(&building_init_hook) - ASI::AddrOf(0x1d38a1);
         ASI::EndRewrite(mreg4);
 
-        ASI::BeginRewrite(mreg2);
-            *(unsigned char*)(ASI::AddrOf(0x1f9258)) = 0xD7; // D6 -> D7
-        ASI::EndRewrite(mreg2);
-
-        ASI::BeginRewrite(mreg3);
-            *(unsigned char*)(ASI::AddrOf(0x4359cd)) = 0xD7; // D6 -> D7
-        ASI::EndRewrite(mreg3);
-
         ASI::BeginRewrite(mreg5);
-            *(unsigned char*)(ASI::AddrOf(0x0041E696)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x0041E697)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E69B);
-            *(unsigned char*)(ASI::AddrOf(0x0041E69B)) = 0x90;   // nop instruction
-            *(unsigned char*)(ASI::AddrOf(0x0041E69C)) = 0x90;   // nop instruction
+            *(unsigned char*)(ASI::AddrOf(0x41E024)) = 0xE9;   // jmp instruction
+            *(int*)(ASI::AddrOf(0x41E025)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E02B); //IDK, compiler do shit here, should be 0x41e02a
+
+            *(unsigned char*)(ASI::AddrOf(0x41E029)) = 0x90;   // nop instruction
         ASI::EndRewrite(mreg5);      
 
         ASI::BeginRewrite(mreg6);
@@ -448,9 +439,9 @@ void hookModernVersion()
 
 
     ASI::MemoryRegion mreg(ASI::AddrOf(0x2EC2F1), 8);//Register string for the building
-    ASI::MemoryRegion mreg2(ASI::AddrOf(0x2C2E9C),1); //CGdResource::LoadBuildings
+    /*ASI::MemoryRegion mreg2(ASI::AddrOf(0x2C2E9C),1); //CGdResource::LoadBuildings
     ASI::MemoryRegion mreg3(ASI::AddrOf(0x333B1C),1); //CGdDataLoader::LoadBuildings
-    
+    */
     ASI::MemoryRegion mreg4(ASI::AddrOf(0x3462DF),5); //job hook
 
     ASI::MemoryRegion mreg5(ASI::AddrOf(0x2E7004),5); //Init string for the building
@@ -480,7 +471,7 @@ void hookModernVersion()
         *(int*)(ASI::AddrOf(0x2E7005)) = (int)(&building_init_hook) - ASI::AddrOf(0x2E7009);
     ASI::EndRewrite(mreg5);
 
-
+/*
     ASI::BeginRewrite(mreg2);
         *(unsigned char*)(ASI::AddrOf(0x2C2E9C)) = 0xD7; // D6 -> D7
     ASI::EndRewrite(mreg2);
@@ -488,7 +479,7 @@ void hookModernVersion()
     ASI::BeginRewrite(mreg3);
         *(unsigned char*)(ASI::AddrOf(0x333B1C)) = 0xD7; // D6 -> D7
     ASI::EndRewrite(mreg3);
-
+*/
     ASI::BeginRewrite(mreg4);
         *(unsigned char*)(ASI::AddrOf(0x3462DF)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x3462E0)) = (unsigned int)(&job_link_hook) - ASI::AddrOf(0x3462E4);//jump distance
@@ -541,18 +532,18 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         if (!ASI::Init(hModule))
             return FALSE;
         //!ASI::CheckSFVersion(ASI::SF_154) &&
-        if (!ASI::CheckSFVersion(ASI::SF_161))
+        if (!ASI::CheckSFVersion(ASI::SF_154) && !ASI::CheckSFVersion(ASI::SF_161))
         {
             return FALSE;
         }
         //game_window = *(HWND*)(ASI::AddrOf(ASI::WINDOW_OFFSET));
         initBuildingData();
 
-        /*if (ASI::CheckSFVersion(ASI::SF_154))
+        if (ASI::CheckSFVersion(ASI::SF_154))
         {
                 hookLegacyVersion();
                 break;
-        }*/
+        }
         if (ASI::CheckSFVersion(ASI::SF_161))
         {
                 hookModernVersion();
