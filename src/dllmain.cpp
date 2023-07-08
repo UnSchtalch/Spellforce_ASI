@@ -84,6 +84,8 @@ unsigned int BUILD_SAWMILL_RET;
 unsigned int JOB_SAWMILL_SELECT_RET;
 unsigned int JOB_SAWMILL_SELECT_CONT;
 
+unsigned int BUILD_IS_TOWER_RET;
+
 std::vector<ASI::BuildingHookData> buildingHoodDataList;
 
 
@@ -228,6 +230,18 @@ asm(
     :"m"(HAMMER_THROW_ID), "o"(new_spell_line_string), "o"(resourceLoadProb), "m"(NEW_MAX_SPELL_LINE_VALUE), "o"(SPELL_DATA_RET));
 }
 
+void __declspec(naked) buildingIsTowerHook()
+{
+    asm(
+        "cmpb $0x32, %%bl\n\t"
+        "je 1f\n\t"
+        "cmp $0xc8, %%ecx\n\t"
+        "jmp *%0\n\t"
+        "1: movl $0x1, %%eax\n\t"
+        "pop %%ebx\n\t"
+        "ret $0x4\n\t":
+        :"o" (BUILD_IS_TOWER_RET));
+}
 
 void initBuildingData()
 {
@@ -257,11 +271,15 @@ void hookLegacyVersion()
         HAMMER_THROW_ID = 0x406E400000000000;
         NEW_MAX_SPELL_LINE_VALUE = 0x406e600000000000;
 
+
+        BUILD_IS_TOWER_RET = ASI::AddrOf(0x342af6);
         SPELL_DATA_RET = ASI::AddrOf(0x001bcfa6);
         SPELL_TYPE_LINK_RET_C = ASI::AddrOf(0x3B7647);
         SPELL_TYPE_LINK_RET = ASI::AddrOf(0x3B84B1);
 
         ASI::MemoryRegion mreg(ASI::AddrOf(0x001bb322), 9);
+
+        ASI::MemoryRegion mreg2(ASI::AddrOf(0x342af0),6); //IsTower cmp before ja
 
         ASI::MemoryRegion mreg4(ASI::AddrOf(0x1d389c), 5);
 
@@ -281,6 +299,13 @@ void hookLegacyVersion()
                 *(unsigned char*)(ASI::AddrOf(0x001bb32a)) = 0x90;   // nop instruction
         ASI::EndRewrite(mreg);
 
+        ASI::BeginRewrite(mreg2);
+            *(unsigned char*)(ASI::AddrOf(0x342af0)) = 0xE9;   // jmp instruction
+            *(int*)(ASI::AddrOf(0x342af1)) = (int)(&buildingIsTowerHook) - ASI::AddrOf(0x342af5); //jump distance should be calculated from the end of the instruction
+            *(unsigned char*)(ASI::AddrOf(0x342af5)) = 0x90;   // nop instruction
+        ASI::EndRewrite(mreg2);
+
+
         ASI::BeginRewrite(mreg4);
             *(unsigned char*)(ASI::AddrOf(0x1d389c)) = 0xE9;   // jmp instruction
             *(int*)(ASI::AddrOf(0x1d389d)) = (int)(&building_init_hook) - ASI::AddrOf(0x1d38a1);
@@ -288,8 +313,7 @@ void hookLegacyVersion()
 
         ASI::BeginRewrite(mreg5);
             *(unsigned char*)(ASI::AddrOf(0x41E024)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x41E025)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E02B); //IDK, compiler do shit here, should be 0x41e02a
-
+            *(int*)(ASI::AddrOf(0x41E025)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E029); //jump distance should be calculated from the end of the instruction
             *(unsigned char*)(ASI::AddrOf(0x41E029)) = 0x90;   // nop instruction
         ASI::EndRewrite(mreg5);      
 
