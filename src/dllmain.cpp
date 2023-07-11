@@ -271,6 +271,17 @@ asm(
     );
 }
 
+void __declspec(naked) job_link_hook_legacy(){
+asm(
+    "cmpb $0x35, %%cl\n\t" //our building ID-1 (IDC WHY)
+    "jne 1f\n\t" //if not our case, just continue
+    "jmp *%0\n\t"//jump to procedures for workers
+    "1: cmpb $0x88, %%cl\n\t" //rewriten comparison
+    "jmp *%1\n\t":
+    : "o"(JOB_LINK_RET),"m"(JOB_LINK_CONT)
+    );
+}
+
 //Building::DoneVersion 1.61 Version
 void __declspec(naked) buildingDoneHook(){
 asm(
@@ -282,58 +293,6 @@ asm(
     : "o"(BUILD_LINK_CONT),"m"(BUILD_LINK_RET));
 
 }
-
-/*
-void __declspec(naked) buildingHabitableHook(){
-asm(
-    "cmpb $0x36, %%al\n\t" //our building ID -4 
-    "jne 1f\n\t" //if not our case, just continue
-    "mov $0x1, %%eax\n\t"
-    "ret $0x4"
-    "1: cmpb $0x85, %%al\n\t" //rewriten comparison
-    "jmp *%0\n\t":
-    : "o"(BUILD_HAB_CONT));
-}
-
-*/
-/*
-extern bool __thiscall buildingIsSawmillHook(void *param_0, unsigned short param_l);
-extern bool __thiscall buildingIsHabitableHook(void *param_0, unsigned short param_l);
-extern bool __thiscall buildingIsHabitableSingleHook(void *param_0, unsigned short param_l);
-/*
-void __declspec(naked) buildingHabitableSingleHook(){
-asm(
-    "cmpb $0xd6, %%al\n\t" //our building ID
-    "jne 1f\n\t" //if not our case, just continue
-    "jmp *%0\n\t"//jump to procedures for workers
-    "1: cmpb $0x84, %%al\n\t" //rewriten comparison
-    "jmp *%1\n\t":
-    : "o"(BUILD_HAB_S_RET),"m"(BUILD_HAB_S_CONT)
-    );
-}
-void __declspec(naked) buildingSawmillHook(){
-asm(
-    "cmpb $0x36, %%cl\n\t" //our building ID
-    "jne 1f\n\t" //if not our case, just continue
-    "movb $0x1, %%al\n\t"
-    "pop %%ebp\n\t"
-    "ret $0x4\n\t"
-    "1: cmpb $0x5, %%cl\n\t" //rewriten comparison
-    "jne 2f\n\t"
-    "movb $0x1, %%al\n\t"
-    "pop %%ebp\n\t"
-    "ret $0x4\n\t"
-    "2: jmp *%0\n\t":
-    : "o"(BUILD_SAWMILL_RET)
-    );
-}
-*/
-
-
-//rewtritten from scratch, due bullshittery of code difference
-
-
-
 
 void __declspec(naked) woodworkerDeliveryHook (){
     asm(
@@ -382,113 +341,111 @@ void initBuildingData()
 
 void hookLegacyVersion()
 {
-        BUILD_DATA_RET = ASI::AddrOf(0x001bb33f);
-        BUILD_INIT_RET = ASI::AddrOf(0x001d38a1);
+    BUILD_DATA_RET = ASI::AddrOf(0x001bb33f);
+    BUILD_INIT_RET = ASI::AddrOf(0x001d38a1);
 
-        BUILD_LINK_RET = ASI::AddrOf(0x0041E02A); //just continue as usual
-        BUILD_LINK_CONT = ASI::AddrOf (0x41E14D);
-        link_buiding_data= ASI::AddrOf(0x41E9B0);
+    BUILD_LINK_RET = ASI::AddrOf(0x0041E02A); //just continue as usual
+    BUILD_LINK_CONT = ASI::AddrOf (0x41E14D);
+    link_buiding_data= ASI::AddrOf(0x41E9B0);
 
-        OLD_MAX_BUILDING_VALUE = 0x406AC00000000000;
-        NEW_MAX_BUILDING_VALUE = 0x406AE00000000000;
-        HAMMER_THROW_ID = 0x406E400000000000;
-        NEW_MAX_SPELL_LINE_VALUE = 0x406e600000000000;
-
-
-        BUILD_IS_TOWER_RET = ASI::AddrOf(0x342af6);
-        SPELL_DATA_RET = ASI::AddrOf(0x001bcfa6);
-        SPELL_TYPE_LINK_RET_C = ASI::AddrOf(0x3B7647);
-        SPELL_TYPE_LINK_RET = ASI::AddrOf(0x3B84B1);
-
-        ASI::MemoryRegion mreg(ASI::AddrOf(0x001bb322), 9);
-
-        ASI::MemoryRegion mreg2(ASI::AddrOf(0x342af0),6); //IsTower cmp before ja
-
-        ASI::MemoryRegion mreg3 (ASI::AddrOf(0x342F30),9); // BuildingIsHabitable
+    OLD_MAX_BUILDING_VALUE = 0x406AC00000000000;
+    NEW_MAX_BUILDING_VALUE = 0x406AE00000000000;
+    HAMMER_THROW_ID = 0x406E400000000000;
+    NEW_MAX_SPELL_LINE_VALUE = 0x406e600000000000;
 
 
-        ASI::MemoryRegion mreg4(ASI::AddrOf(0x1d389c), 5);
+    BUILD_IS_TOWER_RET = ASI::AddrOf(0x342af6);
+    SPELL_DATA_RET = ASI::AddrOf(0x001bcfa6);
+    SPELL_TYPE_LINK_RET_C = ASI::AddrOf(0x3B7647);
+    SPELL_TYPE_LINK_RET = ASI::AddrOf(0x3B84B1);
 
-        ASI::MemoryRegion mreg5(ASI::AddrOf(0x41E024), 6); //Building <-> unit link "default" statement start
+    JOB_LINK_RET = ASI::AddrOf(0x40C8D5);
+    JOB_LINK_CONT = ASI::AddrOf(0x40C5E3);
 
-        ASI::MemoryRegion mreg6(ASI::AddrOf(0x3B7642), 5);
+    ASI::MemoryRegion mreg (ASI::AddrOf(0x1bb322), 9);
+    ASI::MemoryRegion mreg2 (ASI::AddrOf(0x342af0), 6); //IsTower cmp before ja
+    ASI::MemoryRegion mreg3 (ASI::AddrOf(0x342F30), 9); // BuildingIsHabitable
+    ASI::MemoryRegion mreg4 (ASI::AddrOf(0x1d389c), 5);
+    ASI::MemoryRegion mreg5 (ASI::AddrOf(0x41E024), 6); //Building <-> unit link "default" statement start
+    ASI::MemoryRegion mreg6 (ASI::AddrOf(0x3B7642), 5);
+    ASI::MemoryRegion mreg7 (ASI::AddrOf(0x1bcf89), 9); //SpellLine definition for lua
+    ASI::MemoryRegion mreg8 (ASI::AddrOf(0x342E60), 9); //BuildingIsHabitableSingle
+    ASI::MemoryRegion mreg9 (ASI::AddrOf(0x40E378), 5); //Sawmill hook
 
-        ASI::MemoryRegion mreg7(ASI::AddrOf(0x001bcf89), 9); //SpellLine definition for lua
+    ASI::MemoryRegion mreg10 (ASI::AddrOf(0x40C5DD), 5);
 
-        ASI::MemoryRegion mreg8 (ASI::AddrOf(0x342E60),9); //BuildingIsHabitableSingle
-        ASI::MemoryRegion mreg9 (ASI::AddrOf(0x40E378), 5); //Sawmill hook
+    ASI::BeginRewrite(mreg);
+        *(unsigned char*)(ASI::AddrOf(0x001bb322)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x001bb323)) = (int)(&building_register_hook) - ASI::AddrOf(0x001bb327);
+        *(unsigned char*)(ASI::AddrOf(0x001bb327)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bb328)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bb329)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bb32a)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg);
 
-
-        ASI::BeginRewrite(mreg);
-                *(unsigned char*)(ASI::AddrOf(0x001bb322)) = 0xE9;   // jmp instruction
-                *(int*)(ASI::AddrOf(0x001bb323)) = (int)(&building_register_hook) - ASI::AddrOf(0x001bb327);
-                *(unsigned char*)(ASI::AddrOf(0x001bb327)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bb328)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bb329)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bb32a)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg);
-
-        ASI::BeginRewrite(mreg2);
-            *(unsigned char*)(ASI::AddrOf(0x342af0)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x342af1)) = (int)(&buildingIsTowerHook) - ASI::AddrOf(0x342af5); //jump distance should be calculated from the end of the instruction
-            *(unsigned char*)(ASI::AddrOf(0x342af5)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg2);
+    ASI::BeginRewrite(mreg2);
+        *(unsigned char*)(ASI::AddrOf(0x342af0)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x342af1)) = (int)(&buildingIsTowerHook) - ASI::AddrOf(0x342af5); //jump distance should be calculated from the end of the instruction
+        *(unsigned char*)(ASI::AddrOf(0x342af5)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg2);
 
 
         //Hack here: we hook the start of the function to transfer control to our implementation
         //Also NOP trail to avoid some nasty execution flow corruption
-        ASI::BeginRewrite(mreg3);
-            *(unsigned char*)(ASI::AddrOf(0x342F30)) = 0x90;
-            *(unsigned char*)(ASI::AddrOf(0x342F31)) = 0x90;
-            *(unsigned char*)(ASI::AddrOf(0x342F32)) = 0xE9;
-            *(int*)(ASI::AddrOf(0x342F33)) = (unsigned int)(&buildingIsHabitableHook) - ASI::AddrOf(0x342F37);
-            *(unsigned char*)(ASI::AddrOf(0x342F37)) = 0x90;   // nop instruction
-            *(unsigned char*)(ASI::AddrOf(0x342F38)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg3);
+     ASI::BeginRewrite(mreg3);
+        *(unsigned char*)(ASI::AddrOf(0x342F30)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x342F31)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x342F32)) = 0xE9;
+        *(int*)(ASI::AddrOf(0x342F33)) = (unsigned int)(&buildingIsHabitableHook) - ASI::AddrOf(0x342F37);
+        *(unsigned char*)(ASI::AddrOf(0x342F37)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x342F38)) = 0x90;   // nop instruction
+     ASI::EndRewrite(mreg3);
 
-        ASI::BeginRewrite(mreg8);
-            *(unsigned char*)(ASI::AddrOf(0x342E60)) = 0x90;
-            *(unsigned char*)(ASI::AddrOf(0x342E61)) = 0x90;
-            *(unsigned char*)(ASI::AddrOf(0x342E62)) = 0xE9;
-            *(int*)(ASI::AddrOf(0x342E63)) = (unsigned int)(&buildingIsHabitableSingleHook) - ASI::AddrOf(0x342E67);
-            *(unsigned char*)(ASI::AddrOf(0x342E67)) = 0x90;   // nop instruction
-            *(unsigned char*)(ASI::AddrOf(0x342E68)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg8);
+    ASI::BeginRewrite(mreg8);
+        *(unsigned char*)(ASI::AddrOf(0x342E60)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x342E61)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x342E62)) = 0xE9;
+        *(int*)(ASI::AddrOf(0x342E63)) = (unsigned int)(&buildingIsHabitableSingleHook) - ASI::AddrOf(0x342E67);
+        *(unsigned char*)(ASI::AddrOf(0x342E67)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x342E68)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg8);
 
+    ASI::BeginRewrite(mreg4);
+        *(unsigned char*)(ASI::AddrOf(0x1d389c)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x1d389d)) = (int)(&building_init_hook) - ASI::AddrOf(0x1d38a1);
+    ASI::EndRewrite(mreg4);
 
+    ASI::BeginRewrite(mreg5);
+        *(unsigned char*)(ASI::AddrOf(0x41E024)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x41E025)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E029); //jump distance should be calculated from the end of the instruction
+        *(unsigned char*)(ASI::AddrOf(0x41E029)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg5);
 
-        ASI::BeginRewrite(mreg4);
-            *(unsigned char*)(ASI::AddrOf(0x1d389c)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x1d389d)) = (int)(&building_init_hook) - ASI::AddrOf(0x1d38a1);
-        ASI::EndRewrite(mreg4);
-
-        ASI::BeginRewrite(mreg5);
-            *(unsigned char*)(ASI::AddrOf(0x41E024)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x41E025)) = (int)(&building_link_hook) - ASI::AddrOf(0x0041E029); //jump distance should be calculated from the end of the instruction
-            *(unsigned char*)(ASI::AddrOf(0x41E029)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg5);      
-
-        ASI::BeginRewrite(mreg6);
-            *(unsigned char*)(ASI::AddrOf(0x3B7642)) = 0xE9;   // jmp instruction
-            *(int*)(ASI::AddrOf(0x3B7643)) = (int)(&spell_type_link_hook) - ASI::AddrOf(0x3B7647);
-        ASI::EndRewrite(mreg6);    
+    ASI::BeginRewrite(mreg6);
+        *(unsigned char*)(ASI::AddrOf(0x3B7642)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x3B7643)) = (int)(&spell_type_link_hook) - ASI::AddrOf(0x3B7647);
+    ASI::EndRewrite(mreg6);
 
 
-        ASI::BeginRewrite(mreg7);
-                *(unsigned char*)(ASI::AddrOf(0x001bcf89)) = 0xE9;   // jmp instruction
-                *(int*)(ASI::AddrOf(0x001bcf8a)) = (int)(&spell_type_register_hook) - ASI::AddrOf(0x001bcf8e);
-                *(unsigned char*)(ASI::AddrOf(0x001bcf8e)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bcf8f)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bcf90)) = 0x90;   // nop instruction
-                *(unsigned char*)(ASI::AddrOf(0x001bcf91)) = 0x90;   // nop instruction
-        ASI::EndRewrite(mreg7);  
-
-
+    ASI::BeginRewrite(mreg7);
+        *(unsigned char*)(ASI::AddrOf(0x001bcf89)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x001bcf8a)) = (int)(&spell_type_register_hook) - ASI::AddrOf(0x001bcf8e);
+        *(unsigned char*)(ASI::AddrOf(0x001bcf8e)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bcf8f)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bcf90)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x001bcf91)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg7);
 
     ASI::BeginRewrite(mreg9);
         *(unsigned char*)(ASI::AddrOf(0x40E378)) = 0xE8;   // Near Call
         *(int*)(ASI::AddrOf(0x40E379)) = (unsigned int)(&buildingIsSawmillHook) - ASI::AddrOf(0x40E37D);//Distance to new function
     ASI::EndRewrite(mreg9);
+
+    ASI::BeginRewrite(mreg10);
+        *(unsigned char*)(ASI::AddrOf(0x40C5DD)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x40C5DE)) = (unsigned int)(&job_link_hook_legacy) - ASI::AddrOf(0x40C5E2);//jump distance
+        *(unsigned char*)(ASI::AddrOf(0x40C5E2)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg10);
 
 }
 
@@ -556,15 +513,6 @@ void hookModernVersion()
         *(int*)(ASI::AddrOf(0x2E7005)) = (int)(&building_init_hook) - ASI::AddrOf(0x2E7009);
     ASI::EndRewrite(mreg5);
 
-/*
-    ASI::BeginRewrite(mreg2);
-        *(unsigned char*)(ASI::AddrOf(0x2C2E9C)) = 0xD7; // D6 -> D7
-    ASI::EndRewrite(mreg2);
-    
-    ASI::BeginRewrite(mreg3);
-        *(unsigned char*)(ASI::AddrOf(0x333B1C)) = 0xD7; // D6 -> D7
-    ASI::EndRewrite(mreg3);
-*/
     ASI::BeginRewrite(mreg4);
         *(unsigned char*)(ASI::AddrOf(0x3462DF)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x3462E0)) = (unsigned int)(&job_link_hook) - ASI::AddrOf(0x3462E4);//jump distance
