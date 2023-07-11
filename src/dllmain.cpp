@@ -300,10 +300,23 @@ void __declspec(naked) woodworkerDeliveryHook (){
     "addl %%ebx, %%ecx\n\t" //overwritten code from hook
     "cmpb $0x5, %%al\n\t" //are we orcs?
     "jne 1f\n\t" //if not -- jump away
-    "movl $0x36, %%ebx\n\t"//we are! looking for our building
+    "mov $0x36, %%ebx\n\t"//we are! looking for our building
     "jmp *%0\n\t"  //jump away to look for
     "1: jmp *%1\n\t":
-    : "o"(JOB_SAWMILL_SELECT_RET),"m"(JOB_SAWMILL_SELECT_CONT)
+    : "o"(JOB_SAWMILL_SELECT_RET),"o"(JOB_SAWMILL_SELECT_CONT)
+    );
+}
+
+void __declspec(naked) woodworkerDeliveryHook_legacy (){
+    asm(
+    "movzbl 0x1a(%%ebx,%%edx), %%eax\n\t"
+    "lea (%%ebx,%%edx), %%ecx\n\t" //overwritten code from hook
+    "cmpb $0x5, %%al\n\t" //are we orcs?
+    "jne 1f\n\t" //if not -- jump away
+    "mov $0x36, %%ebp\n\t"//we are! looking for our building
+    "jmp *%0\n\t"  //jump away to look for
+    "1: jmp *%1\n\t":
+    : "o"(JOB_SAWMILL_SELECT_RET),"o"(JOB_SAWMILL_SELECT_CONT)
     );
 }
 
@@ -317,6 +330,16 @@ void __declspec(naked) carpenterDoWorkHook(){
     : "o" (JOB_SAWMILL_WORK_RET), "o" (JOB_SAWMILL_WORK_CONT));
 }
 
+
+void __declspec(naked) carpenterDoWorkHook_legacy(){
+    asm(
+    "movzbl %%dl, %%edx \n\t" //overwritten by our hook
+    "cmpb $0x5, %%dl \n\t"
+    "jne 1f\n\t"
+    "jmp *%0\n\t"
+    "1: jmp *%1\n\t":
+    : "o" (JOB_SAWMILL_WORK_RET), "o" (JOB_SAWMILL_WORK_CONT));
+}
 
 void initBuildingData()
 {
@@ -362,6 +385,12 @@ void hookLegacyVersion()
     JOB_LINK_RET = ASI::AddrOf(0x40C8D5);
     JOB_LINK_CONT = ASI::AddrOf(0x40C5E3);
 
+    JOB_SAWMILL_WORK_RET = ASI::AddrOf(0x40F261);
+    JOB_SAWMILL_WORK_CONT = ASI::AddrOf(0x40F254);
+
+    JOB_SAWMILL_SELECT_RET = ASI::AddrOf(0x4187CF);
+    JOB_SAWMILL_SELECT_CONT = ASI::AddrOf(0x4187BB);
+
     ASI::MemoryRegion mreg (ASI::AddrOf(0x1bb322), 9);
     ASI::MemoryRegion mreg2 (ASI::AddrOf(0x342af0), 6); //IsTower cmp before ja
     ASI::MemoryRegion mreg3 (ASI::AddrOf(0x342F30), 9); // BuildingIsHabitable
@@ -372,7 +401,9 @@ void hookLegacyVersion()
     ASI::MemoryRegion mreg8 (ASI::AddrOf(0x342E60), 9); //BuildingIsHabitableSingle
     ASI::MemoryRegion mreg9 (ASI::AddrOf(0x40E378), 5); //Sawmill hook
 
-    ASI::MemoryRegion mreg10 (ASI::AddrOf(0x40C5DD), 5);
+    ASI::MemoryRegion mreg10 (ASI::AddrOf(0x40C5DD), 6); //Worker start Working at building hook
+    ASI::MemoryRegion mreg11 (ASI::AddrOf(0x40F24E), 6); //CarpenterDoWork Hook
+    ASI::MemoryRegion mreg12 (ASI::AddrOf(0x4187B4), 7); //Woodworker Delivery Hook
 
     ASI::BeginRewrite(mreg);
         *(unsigned char*)(ASI::AddrOf(0x001bb322)) = 0xE9;   // jmp instruction
@@ -446,6 +477,22 @@ void hookLegacyVersion()
         *(int*)(ASI::AddrOf(0x40C5DE)) = (unsigned int)(&job_link_hook_legacy) - ASI::AddrOf(0x40C5E2);//jump distance
         *(unsigned char*)(ASI::AddrOf(0x40C5E2)) = 0x90;   // nop instruction
     ASI::EndRewrite(mreg10);
+
+
+    ASI::BeginRewrite(mreg11);
+        *(unsigned char*)(ASI::AddrOf(0x40F24E)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x40F24F)) = (unsigned int)(&carpenterDoWorkHook_legacy) - ASI::AddrOf(0x40F253);//jump distance
+        *(unsigned char*)(ASI::AddrOf(0x40F253)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg11);
+
+
+    ASI::BeginRewrite(mreg12);
+        *(unsigned char*)(ASI::AddrOf(0x4187B4)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x4187B5)) = (unsigned int)(&woodworkerDeliveryHook_legacy) - ASI::AddrOf(0x4187B9);//jump distance
+        *(unsigned char*)(ASI::AddrOf(0x4187B9)) = 0x90;   // nop instruction
+        *(unsigned char*)(ASI::AddrOf(0x4187BA)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg12);
+
 
 }
 
