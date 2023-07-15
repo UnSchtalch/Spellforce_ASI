@@ -537,11 +537,11 @@ void hookModernVersion()
 
     ASI::MemoryRegion mreg6 (ASI::AddrOf(0x3311FC),5); // CGdBuildingToolBox::Done, i.e. linkBuildingWithStuff
 
-    ASI::MemoryRegion mreg7 (ASI::AddrOf(0x31F8C2),5); // BuildingIsHabitable
+    ASI::MemoryRegion mreg7 (ASI::AddrOf(0x31F8B0),7); // BuildingIsHabitable
 
-    ASI::MemoryRegion mreg8 (ASI::AddrOf(0x31F7F2),5); // BuildingIsHabitableSingle
+    ASI::MemoryRegion mreg8 (ASI::AddrOf(0x31F7E0),7); // BuildingIsHabitableSingle
 
-    ASI::MemoryRegion mreg9 (ASI::AddrOf(0x31f2EE), 5); //Sawmill hook
+    ASI::MemoryRegion mreg9 (ASI::AddrOf(0x34805D), 5); //Building IsSawmill hook
 
     ASI::MemoryRegion mreg10 (ASI::AddrOf(0x34A76B), 5); //Sawmill selection hook
 
@@ -571,20 +571,26 @@ void hookModernVersion()
         *(int*)(ASI::AddrOf(0x3311FD)) = (unsigned int)(&buildingDoneHook) - ASI::AddrOf(0x331201);//jump distance
     ASI::EndRewrite(mreg6);
 
+    //NOP trail + jump to our replacement function
     ASI::BeginRewrite(mreg7);
-        *(unsigned char*)(ASI::AddrOf(0x31F8C2)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x31F8C3)) = (unsigned int)(&buildingIsHabitableHook) - ASI::AddrOf(0x31F8C7);//jump distance
+        *(unsigned char*)(ASI::AddrOf(0x31F8B0)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x31F8B1)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x31F8B2)) = 0xE9;
+        *(int*)(ASI::AddrOf(0x31F8B3)) = (unsigned int)(&buildingIsHabitableHook) - ASI::AddrOf(0x31F8B7);
     ASI::EndRewrite(mreg7);
 
-
+    //NOP trail + jump to our replacement function
     ASI::BeginRewrite(mreg8);
-        *(unsigned char*)(ASI::AddrOf(0x31F7F2)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x31F7F3)) = (unsigned int)(&buildingIsHabitableSingleHook) - ASI::AddrOf(0x31F7F7);//jump distance
+        *(unsigned char*)(ASI::AddrOf(0x31F7E0)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x31F7E1)) = 0x90;
+        *(unsigned char*)(ASI::AddrOf(0x31F7E2)) = 0xE9;
+        *(int*)(ASI::AddrOf(0x31F7E3)) = (unsigned int)(&buildingIsHabitableSingleHook) - ASI::AddrOf(0x31F7E7);
     ASI::EndRewrite(mreg8);
 
-    ASI::BeginRewrite(mreg9);//FIXME FOR CORRECT ADDRESS
-        *(unsigned char*)(ASI::AddrOf(0x31F2EE)) = 0xE8;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x31F2EF)) = (unsigned int)(&buildingIsSawmillHook) - ASI::AddrOf(0x31F2F3);//jump distance
+    //Outright replace function call
+    ASI::BeginRewrite(mreg9);
+        *(unsigned char*)(ASI::AddrOf(0x34805D)) = 0xE8;   // Near CALL
+        *(int*)(ASI::AddrOf(0x34805E)) = (unsigned int)(&buildingIsSawmillHook) - ASI::AddrOf(0x348062);//jump distance
     ASI::EndRewrite(mreg9);
 
 
