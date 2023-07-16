@@ -175,7 +175,7 @@ void __declspec(naked) building_register_hook(){
 }
 
 
-//Building::DoneVersion 1.54 Version
+//CGdBuildingToolBox:Done 1.54 Version
 //Had to keep'em separated
 int link_buiding_data; //Dirty hack
 void __declspec(naked) building_link_hook(){
@@ -212,6 +212,17 @@ void __declspec(naked) spell_type_link_hook(){
         :"o" (SPELL_TYPE_LINK_RET_C), "o" (SPELL_TYPE_LINK_RET));
 }
 
+
+void __declspec(naked) spell_type_link_hook_modern(){
+    asm(
+        "cmpl $0xf1, %%eax\n\t"
+        "jne 1f\n\t"
+        "movw $0x60, 0x5c(%%edi)\n\t"
+        "jmp *%1\n\t"
+        "1: cmpb $0xf0, %%al\n\t"
+        "jmp *%0\n\t\n\t":
+        :"o" (SPELL_TYPE_LINK_RET_C), "o" (SPELL_TYPE_LINK_RET));
+}
 
 void __declspec(naked) spell_type_register_hook(){
 asm(
@@ -251,6 +262,21 @@ void __declspec(naked) buildingIsTowerHook()
         :"o" (BUILD_IS_TOWER_RET));
 }
 
+void __declspec(naked) buildingIsTowerHook_modern()
+{
+    asm(
+        "cmpb $0x25, %%al\n\t"
+        "je 1f\n\t"
+        "cmp $0xc8, %%eax\n\t"
+        "jmp *%0\n\t"
+        "1: movl $0x1, %%edx\n\t"
+        "mov %%edx, %%eax\n\t"
+        "pop %%ebp\n\t"
+        "ret $0x4\n\t":
+        :"o" (BUILD_IS_TOWER_RET));
+}
+
+
 
 
 unsigned int JOB_LINK_RET;
@@ -262,7 +288,7 @@ unsigned int JOB_SAWMILL_WORK_CONT;
 
 void __declspec(naked) job_link_hook(){
 asm(
-    "cmpb $0xd5, %%al\n\t" //our building ID-1 (IDC WHY)
+    "cmpb $0x35, %%al\n\t" //our building ID-1 (decreased instruction ago)
     "jne 1f\n\t" //if not our case, just continue
     "jmp *%0\n\t"//jump to procedures for workers
     "1: cmpb $0x88, %%al\n\t" //rewriten comparison
@@ -273,7 +299,7 @@ asm(
 
 void __declspec(naked) job_link_hook_legacy(){
 asm(
-    "cmpb $0x35, %%cl\n\t" //our building ID-1 (IDC WHY)
+    "cmpb $0x35, %%cl\n\t" //our building ID-1 (decreased instruction ago)
     "jne 1f\n\t" //if not our case, just continue
     "jmp *%0\n\t"//jump to procedures for workers
     "1: cmpb $0x88, %%cl\n\t" //rewriten comparison
@@ -282,15 +308,19 @@ asm(
     );
 }
 
-//Building::DoneVersion 1.61 Version
+//CGdBuildingToolBox:Done Version 1.61
 void __declspec(naked) buildingDoneHook(){
 asm(
-    "cmpb $0xd2, %%al\n\t" //our building ID -4 (???)
+    "cmpb $0x32, %%al\n\t" //our building ID -4 (decreased instruction ago)
     "jne 1f\n\t" //if not our case, just continue
     "jmp *%0\n\t"//jump to XData Filling
-    "1: cmpb $0xd1, %%al\n\t" //rewriten comparison
+    "1:cmpb $0x2E,%%al\n\t"
+    "jne 2f\n\t"
+    "push $0xbb5\n\t"
+    "jmp *%2\n\t"
+    "2: cmpb $0xd1, %%al\n\t" //rewriten comparison
     "jmp *%1\n\t":
-    : "o"(BUILD_LINK_CONT),"m"(BUILD_LINK_RET));
+    : "o"(BUILD_LINK_CONT),"o"(BUILD_LINK_RET), "o"(link_buiding_data));
 
 }
 
@@ -517,29 +547,32 @@ void hookModernVersion()
     BUILD_HAB_S_CONT = ASI::AddrOf(0x31F7F7);
 
     BUILD_SAWMILL_RET = ASI::AddrOf(0x31F2F3);
-    //BUILD_SAWMILL_CONT = ASI::AddrOf(0x31F2F3);
+    //NOTE: IS NOT link_tower_unit Function, just variable re-use to jump for it's call
+    link_buiding_data = ASI::AddrOf(0x331422);
 
     JOB_SAWMILL_WORK_RET = ASI::AddrOf(0x33F316);
     JOB_SAWMILL_WORK_CONT = ASI::AddrOf(0x33F309);
 
+    SPELL_TYPE_LINK_RET = ASI::AddrOf(0x381ea8);
+    SPELL_TYPE_LINK_RET_C = ASI::AddrOf(0x381578);
 
     JOB_SAWMILL_SELECT_RET = ASI::AddrOf(0x34A786); // If we are orcs and wanna look for sawmill
     JOB_SAWMILL_SELECT_CONT = ASI::AddrOf(0x34A772); //If we not orcs go here
 
+    BUILD_IS_TOWER_RET = ASI::AddrOf(0x31f479);
 
-    ASI::MemoryRegion mreg(ASI::AddrOf(0x2EC2F1), 8);//Register string for the building
-    /*ASI::MemoryRegion mreg2(ASI::AddrOf(0x2C2E9C),1); //CGdResource::LoadBuildings
-    ASI::MemoryRegion mreg3(ASI::AddrOf(0x333B1C),1); //CGdDataLoader::LoadBuildings
-    */
-    ASI::MemoryRegion mreg4(ASI::AddrOf(0x3462DF),5); //job hook
+    ASI::MemoryRegion mreg (ASI::AddrOf(0x2EC2F1), 8);//Register string for the building
+    ASI::MemoryRegion mreg2 (ASI::AddrOf(0x381573), 5); //spell_manager_cast_spell hook
+    ASI::MemoryRegion mreg3 (ASI::AddrOf(0x31f474), 5); //BuildingIsTower hook;
+    ASI::MemoryRegion mreg4 (ASI::AddrOf(0x3462DF), 5); //job hook
 
-    ASI::MemoryRegion mreg5(ASI::AddrOf(0x2E7004),5); //Init string for the building
+    ASI::MemoryRegion mreg5 (ASI::AddrOf(0x2E7004), 5); //Init string for the building
 
-    ASI::MemoryRegion mreg6 (ASI::AddrOf(0x3311FC),5); // CGdBuildingToolBox::Done, i.e. linkBuildingWithStuff
+    ASI::MemoryRegion mreg6 (ASI::AddrOf(0x3311FC), 5); // CGdBuildingToolBox::Done, i.e. linkBuildingWithStuff
 
-    ASI::MemoryRegion mreg7 (ASI::AddrOf(0x31F8B0),7); // BuildingIsHabitable
+    ASI::MemoryRegion mreg7 (ASI::AddrOf(0x31F8B0), 7); // BuildingIsHabitable
 
-    ASI::MemoryRegion mreg8 (ASI::AddrOf(0x31F7E0),7); // BuildingIsHabitableSingle
+    ASI::MemoryRegion mreg8 (ASI::AddrOf(0x31F7E0), 7); // BuildingIsHabitableSingle
 
     ASI::MemoryRegion mreg9 (ASI::AddrOf(0x34805D), 5); //Building IsSawmill hook
 
@@ -554,6 +587,17 @@ void hookModernVersion()
         *(unsigned char*)(ASI::AddrOf(0x2EC2F7)) = 0x90;   // nop instruction
         *(unsigned char*)(ASI::AddrOf(0x2EC2F8)) = 0x90;   // nop instruction
     ASI::EndRewrite(mreg);
+
+    //Add mapping of hammer throw spell to spell line of arrow tower spell
+    ASI::BeginRewrite(mreg2);
+        *(unsigned char*)(ASI::AddrOf(0x381573)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x381574)) = (int)(&spell_type_link_hook_modern) - ASI::AddrOf(0x381578);
+    ASI::EndRewrite(mreg2);
+
+    ASI::BeginRewrite(mreg3);
+        *(unsigned char*)(ASI::AddrOf(0x31f474)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x31f475)) = (int)(&buildingIsTowerHook_modern) - ASI::AddrOf(0x31f479);
+    ASI::EndRewrite(mreg3);
 
     ASI::BeginRewrite(mreg5);
         *(unsigned char*)(ASI::AddrOf(0x2E7004)) = 0xE9;   // jmp instruction
