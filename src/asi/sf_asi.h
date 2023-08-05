@@ -5,7 +5,7 @@
 
 namespace ASI
 {
-	enum SF_Version { SF_154 = 154, SF_161 = 161 };
+	enum SF_Version { SF_154 = 154, SF_161 = 161, SF_BETA = 162};
 
 	///MemoryRegion is used for rewriting code in a given memory block
 	struct MemoryRegion
@@ -100,7 +100,7 @@ namespace ASI
 	};
 
 	extern unsigned int GAME_BASE;              // start of game code, above this is probably stack? 
-	const int WINDOW_OFFSET = 0x97CB5C;          // pointer to game window is statically allocated in game exe under address GAME_BASE + WINDOW_OFFSET
+	extern int WINDOW_OFFSET;          // pointer to game window is statically allocated in game exe under address GAME_BASE + WINDOW_OFFSET
 	const int APPMAIN_OFFSET = 0x9644D0;         // pointer to appmain, the entire game starts from this position in exe
 
 	bool BeginRewrite(MemoryRegion& mem_region);

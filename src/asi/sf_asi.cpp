@@ -19,16 +19,22 @@ namespace ASI
 	}
 
  	unsigned int GAME_BASE; 
+ 	int WINDOW_OFFSET;
 	void SetGameBase()
 	{
 		GAME_BASE = (unsigned int)GetModuleHandleA("spellforce.exe");
 	}
+
 	/// required for everything to work... why?
 	bool Init(HMODULE lib_module)
 	{
 		if (!DisableThreadLibraryCalls(lib_module))
 			return false;
 		ASI::SetGameBase();
+		if (CheckSFVersion(SF_154))
+			WINDOW_OFFSET = 0x97CB5C;
+		if (CheckSFVersion(SF_BETA))
+			WINDOW_OFFSET = 0xd3a25c;
 		return true;
 	}
 
@@ -43,6 +49,10 @@ namespace ASI
 			break;
 		case SF_161:
 			if (*(int*)ASI::AddrOf(0x1E6EE6) == 10180) //1.61.10180
+				return true;
+			break;
+		case SF_BETA:
+			if (*(int*)ASI::AddrOf(0x177e62) == 11213) //1.61.11213
 				return true;
 		default:
 			return false;
