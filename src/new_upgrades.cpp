@@ -153,6 +153,20 @@ void __declspec(naked) ui_check_can_upgrade_hook()
         jmp UPGRADE_UI_CHECK_FAIL_ABSOLUTE
     }
 }
+void __declspec(naked) ui_check_can_upgrade_hook_beta()
+{
+    asm("mov -0x90(%%ebp), %%eax \n\t"
+        "add %%esi, %%eax        \n\t"
+        "push %%eax              \n\t"
+        "push -0x94(%%ebp)       \n\t"
+        "mov 0x37C(%%edi), %%ecx \n\t"
+        "test %%eax, %%eax       \n\t"
+        "jz 1f                   \n\t"
+        "mov -0x90(%%ebp), %%eax \n\t"
+        "jmp *%1                 \n\t"
+        "1: jmp *%2              \n\t":
+        :"o"(upgrade_can_be_learned), "o"(UPGRADE_UI_CHECK_EXEC_ABSOLUTE),"o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE));
+}
 
 void __declspec(naked) get_upgraded_unit_variant_id_hook()
 {
@@ -515,8 +529,6 @@ void HookLegacyVersion()
         ASI::MemoryRegion mreg(ASI::AddrOf(0x25B19D), 5);
         ASI::MemoryRegion mreg2(ASI::AddrOf(0x63A1D3), 1);
         ASI::MemoryRegion mreg3(ASI::AddrOf(0x51B9CD), 9);
-        ASI::MemoryRegion mreg4(ASI::AddrOf(0x4359CD), 2);
-        ASI::MemoryRegion mreg5(ASI::AddrOf(0x1F9258), 2);
         ASI::MemoryRegion mreg6(ASI::AddrOf(0x51BB09), 9);
         ASI::MemoryRegion mreg_check_upg(ASI::AddrOf(0x3E15A2), 7);
         ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x639D8E), 7);
@@ -587,8 +599,14 @@ void HookBetaVersion()
 
     ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2fd), 5);
     ASI::MemoryRegion mreg2(ASI::AddrOf(0x6468fe), 1);
+    ASI::MemoryRegion mreg3(ASI::AddrOf(0x573d90), 9);
+    ASI::MemoryRegion mreg6(ASI::AddrOf(0x573e4d), 9);
+
+    
     
     ASI::MemoryRegion mreg_check_upg (ASI::AddrOf(0x3269cc), 5);  //gotta fix asm here, alarm
+    ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x646507),6);
+
     ASI::MemoryRegion post_init_mreg(ASI::AddrOf(0x178336), 10);
 
 
@@ -596,6 +614,25 @@ void HookBetaVersion()
     ASI::BeginRewrite(mreg2);
         *(unsigned char*)(ASI::AddrOf(0x6468fe)) = (char)(max_upgrade_index+1);
     ASI::EndRewrite(mreg2);
+    
+    // replace ui unit icon data
+    ASI::BeginRewrite(mreg3);
+        *(int*)(ASI::AddrOf(0x573d90)) = (int)(unit_icons);
+        *(int*)(ASI::AddrOf(0x573d95)) = max_ui_icon_index;
+    ASI::EndRewrite(mreg3);
+    
+    // replace ui unit description data
+    ASI::BeginRewrite(mreg6);
+        *(int*)(ASI::AddrOf(0x573e4d)) = (int)(unit_descriptions) + 4;               // offset is necessary here
+        *(int*)(ASI::AddrOf(0x573e52)) = max_ui_description_index;
+    ASI::EndRewrite(mreg6);
+
+    ASI::BeginRewrite(mreg_ui_check_upg);
+        *(unsigned char*)(ASI::AddrOf(0x646507)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x646508)) = (int)(&ui_check_can_upgrade_hook) - ASI::AddrOf(0x64650D);
+        *(unsigned char*)(ASI::AddrOf(0x64650D)) = 0x90;   // nop instruction
+    ASI::EndRewrite(mreg_ui_check_upg);
+
 
             // hook into init routine at the end, to reload cache based on replaced data
     ASI::BeginRewrite(post_init_mreg);
