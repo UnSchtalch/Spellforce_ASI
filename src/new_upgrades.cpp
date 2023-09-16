@@ -134,7 +134,7 @@ void __declspec(naked) check_can_upgrade_hook()
 
 void __declspec(naked) ui_check_can_upgrade_hook()
 {
-    __asm
+ /*   __asm
     {
         mov edx, [esp+0x24]
         mov ecx, [esp+0x20]
@@ -151,8 +151,24 @@ void __declspec(naked) ui_check_can_upgrade_hook()
         jmp UPGRADE_UI_CHECK_EXEC_ABSOLUTE
         fail:
         jmp UPGRADE_UI_CHECK_FAIL_ABSOLUTE
-    }
+    }*/
+    asm("mov 0x24(%%esp), %%edx\n\t"
+        "mov 0x20(%%esp), %%ecx\n\t"
+        "movw (%%ebx, %%edx), %%ax\n\t"
+        "push %%eax\n\t"
+        "push %%ecx\n\t"
+        "mov 0x37C(%%edi), %%ecx\n\t"
+        "push %%ecx\n\t"
+        "call *%0\n\t"
+        "test %%eax, %%eax"
+        "jz 1f\n\t"
+        "mov 0x24(%%esp), %%edx\n\t"
+        "lea (%%ebx, %%edx), %%eax\n\t"
+        "jmp *%1 \n\t"
+        "1: jmp *%2\n\t":
+       :"o"(upgrade_can_be_learned), "o"(UPGRADE_UI_CHECK_EXEC_ABSOLUTE),"o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE));
 }
+
 void __declspec(naked) ui_check_can_upgrade_hook_beta()
 {
     asm("mov -0x90(%%ebp), %%eax \n\t"
@@ -160,6 +176,8 @@ void __declspec(naked) ui_check_can_upgrade_hook_beta()
         "push %%eax              \n\t"
         "push -0x94(%%ebp)       \n\t"
         "mov 0x37C(%%edi), %%ecx \n\t"
+        "push %%ecx              \n\t"
+        "call *%0                \n\t"
         "test %%eax, %%eax       \n\t"
         "jz 1f                   \n\t"
         "mov -0x90(%%ebp), %%eax \n\t"
@@ -170,11 +188,14 @@ void __declspec(naked) ui_check_can_upgrade_hook_beta()
 
 void __declspec(naked) get_upgraded_unit_variant_id_hook()
 {
-    __asm
+ /*   __asm
     {
         call get_upgraded_unit_variant_id
         jmp UPGRADE_EXEC_ABSOLUTE
-    }
+    }*/
+    asm ("call *%0 \n\t"
+        "jmp *%1":
+        :"o"(get_upgraded_unit_variant_id), "o"(UPGRADE_EXEC_ABSOLUTE));
 }
 
 
