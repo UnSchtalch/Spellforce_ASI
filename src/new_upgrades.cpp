@@ -80,9 +80,13 @@ void __stdcall get_upgraded_unit_variant_id(ASI::Pointer unknown, ASI::Pointer u
 {
     ASI::Pointer stack_pointer(0);
     ASI::Pointer __this(0);
-    __asm mov stack_pointer.ptr, esp
-    __asm mov __this.ptr, ecx
+    asm ( "mov %%esp, %0\n\t"
+          "mov %%ecx, %1\n\t":
+          :"m"(stack_pointer.ptr), "m"(__this,ptr));
 
+/*    __asm mov stack_pointer.ptr, esp
+    __asm mov __this.ptr, ecx
+*/
 
     unsigned short unit_id = (unsigned short)(unit_data[0x0]);
     unsigned short upgraded_unit_id = unit_id;
@@ -117,7 +121,7 @@ void __stdcall get_upgraded_unit_variant_id(ASI::Pointer unknown, ASI::Pointer u
 
 void __declspec(naked) check_can_upgrade_hook()
 {
-    __asm
+    /*__asm
     {
         push esi
         push ebp
@@ -129,7 +133,17 @@ void __declspec(naked) check_can_upgrade_hook()
         jmp UPGRADE_CHECK_EXEC_ABSOLUTE
         fail :
         jmp UPGRADE_CHECK_FAIL_ABSOLUTE
-    }
+    }*/
+    asm("push %%esi\n\t"
+        "push %%ebp\n\t"
+        "push %%ecx\n\t"
+        "call *%0\n\t"
+        "test %%eax, %%eax\n\t"
+        "jz 1f\n\t"
+        "mov 0xDC(%%esp), %%edx\n\t"
+        "jmp *%1\n\t"
+        "1: jmp *%2\n\t":
+        :"o"(upgrade_can_be_learned), "o"(UPGRADE_CHECK_EXEC_ABSOLUTE), "o"(UPGRADE_CHECK_FAIL_ABSOLUTE));
 }
 
 void __declspec(naked) ui_check_can_upgrade_hook()
