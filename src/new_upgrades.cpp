@@ -82,7 +82,7 @@ void __stdcall get_upgraded_unit_variant_id(ASI::Pointer unknown, ASI::Pointer u
     ASI::Pointer __this(0);
     asm ( "mov %%esp, %0\n\t"
           "mov %%ecx, %1\n\t":
-          :"m"(stack_pointer.ptr), "m"(__this,ptr));
+          :"m"(stack_pointer.ptr), "m"(__this.ptr));
 
 /*    __asm mov stack_pointer.ptr, esp
     __asm mov __this.ptr, ecx
@@ -146,8 +146,7 @@ void __declspec(naked) check_can_upgrade_hook()
         :"o"(upgrade_can_be_learned), "o"(UPGRADE_CHECK_EXEC_ABSOLUTE), "o"(UPGRADE_CHECK_FAIL_ABSOLUTE));
 }
 
-void __declspec(naked) ui_check_can_upgrade_hook()
-{
+
  /*   __asm
     {
         mov edx, [esp+0x24]
@@ -166,6 +165,8 @@ void __declspec(naked) ui_check_can_upgrade_hook()
         fail:
         jmp UPGRADE_UI_CHECK_FAIL_ABSOLUTE
     }*/
+void __declspec(naked) ui_check_can_upgrade_hook()
+{
     asm("mov 0x24(%%esp), %%edx\n\t"
         "mov 0x20(%%esp), %%ecx\n\t"
         "movw (%%ebx, %%edx), %%ax\n\t"
@@ -174,7 +175,7 @@ void __declspec(naked) ui_check_can_upgrade_hook()
         "mov 0x37C(%%edi), %%ecx\n\t"
         "push %%ecx\n\t"
         "call *%0\n\t"
-        "test %%eax, %%eax"
+        "test %%eax, %%eax\n\t"
         "jz 1f\n\t"
         "mov 0x24(%%esp), %%edx\n\t"
         "lea (%%ebx, %%edx), %%eax\n\t"
@@ -202,11 +203,6 @@ void __declspec(naked) ui_check_can_upgrade_hook_beta()
 
 void __declspec(naked) get_upgraded_unit_variant_id_hook()
 {
- /*   __asm
-    {
-        call get_upgraded_unit_variant_id
-        jmp UPGRADE_EXEC_ABSOLUTE
-    }*/
     asm ("call *%0 \n\t"
         "jmp *%1":
         :"o"(get_upgraded_unit_variant_id), "o"(UPGRADE_EXEC_ABSOLUTE));
@@ -259,7 +255,7 @@ void __declspec(naked) post_init_modifications_hook_beta()
     //function tail differs from 1.54, so I've taken one more instruction for safety
     asm(
         "call %0\n\t"
-        "mov -0xc(%%ebp)\n\t"
+        "mov -0xc(%%ebp), %%ecx\n\t"
         "mov %%ecx, %%fs:0x0\n\t"
         "jmp *%1\n\t":
         :"m"(post_init_modifications), "o"(POST_INIT_EXEC_ABSOLUTE));
@@ -565,6 +561,7 @@ void HookLegacyVersion()
         ASI::MemoryRegion mreg2(ASI::AddrOf(0x63A1D3), 1);
         ASI::MemoryRegion mreg3(ASI::AddrOf(0x51B9CD), 9);
         ASI::MemoryRegion mreg6(ASI::AddrOf(0x51BB09), 9);
+
         ASI::MemoryRegion mreg_check_upg(ASI::AddrOf(0x3E15A2), 7);
         ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x639D8E), 7);
 
@@ -629,21 +626,21 @@ void HookBetaVersion()
     UPGRADE_UI_CHECK_EXEC_ABSOLUTE = ASI::AddrOf(0x646511); //Do not forget to mov edi to ecx
     POST_INIT_EXEC_ABSOLUTE = ASI::AddrOf(0x178340); //Seems fine, I hope?
 
-
-
-
-    ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2fd), 5);
+    ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2f8), 5);
     ASI::MemoryRegion mreg2(ASI::AddrOf(0x6468fe), 1);
     ASI::MemoryRegion mreg3(ASI::AddrOf(0x573d90), 9);
-    ASI::MemoryRegion mreg6(ASI::AddrOf(0x573e4d), 9);
-
-    
+    ASI::MemoryRegion mreg6(ASI::AddrOf(0x573e4d), 9); 
     
     ASI::MemoryRegion mreg_check_upg (ASI::AddrOf(0x3269cc), 5);  //gotta fix asm here, alarm
-    ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x646507),6);
 
+    ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x646507),6);
     ASI::MemoryRegion post_init_mreg(ASI::AddrOf(0x178336), 10);
 
+    //No need to make "beta" version of hook, since calls are the same to a point
+    ASI::BeginRewrite(mreg);
+        *(unsigned char*)(ASI::AddrOf(0x2bb2f8)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2bb2f9)) = (int)(&get_upgraded_unit_variant_id_hook) - ASI::AddrOf(0x2bb2fd);
+    ASI::EndRewrite(mreg);
 
     // replace max upgrade index constant
     ASI::BeginRewrite(mreg2);
@@ -664,19 +661,17 @@ void HookBetaVersion()
 
     ASI::BeginRewrite(mreg_ui_check_upg);
         *(unsigned char*)(ASI::AddrOf(0x646507)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x646508)) = (int)(&ui_check_can_upgrade_hook) - ASI::AddrOf(0x64650D);
+        *(int*)(ASI::AddrOf(0x646508)) = (int)(&ui_check_can_upgrade_hook_beta) - ASI::AddrOf(0x64650D);
         *(unsigned char*)(ASI::AddrOf(0x64650D)) = 0x90;   // nop instruction
     ASI::EndRewrite(mreg_ui_check_upg);
 
-
-            // hook into init routine at the end, to reload cache based on replaced data
+    // hook into init routine at the end, to reload cache based on replaced data
     ASI::BeginRewrite(post_init_mreg);
         *(unsigned char*)(ASI::AddrOf(0x178336)) = 0x90;   
         *(unsigned char*)(ASI::AddrOf(0x178337)) = 0x90;   
         *(unsigned char*)(ASI::AddrOf(0x178338)) = 0x90;   // NOP trail
-
         *(unsigned char*)(ASI::AddrOf(0x178339)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x17833A)) = (int)(&post_init_modifications_hook) - ASI::AddrOf(0x00F55E); 
+        *(int*)(ASI::AddrOf(0x17833A)) = (int)(&post_init_modifications_hook_beta) - ASI::AddrOf(0x17833E); 
     ASI::EndRewrite(post_init_mreg);
 
 }
@@ -714,15 +709,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         {
             HookBetaVersion();
         }
-        // THESE DO NOT WORK BECAUSE THEY'RE NOT UPDATED UNTIL AFTER USED
-        /*ASI::BeginRewrite(mreg4);
-        *(unsigned short*)(ASI::AddrOf(0x4359CD)) = MAX_BUILDING_INDEX;
-        ASI::EndRewrite(mreg4);
-
-        ASI::BeginRewrite(mreg5);
-        *(unsigned short*)(ASI::AddrOf(0x1F9258)) = MAX_BUILDING_INDEX;
-        ASI::EndRewrite(mreg5);*/
-
         break;
     }
     case DLL_PROCESS_DETACH:
