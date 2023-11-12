@@ -34,7 +34,7 @@ namespace ASI
 		if (CheckSFVersion(SF_154))
 			WINDOW_OFFSET = 0x97CB5C;
 		if (CheckSFVersion(SF_BETA))
-			WINDOW_OFFSET = 0xd3a25c;
+			WINDOW_OFFSET = 0x93A25C;
 		return true;
 	}
 
@@ -52,7 +52,7 @@ namespace ASI
 				return true;
 			break;
 		case SF_BETA:
-			if (*(int*)ASI::AddrOf(0x177e62) == 11213) //1.61.11213
+			if (*(int*)ASI::AddrOf(0x177e63) == 11213) //1.61.11213
 				return true;
 		default:
 			return false;

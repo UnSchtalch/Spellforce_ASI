@@ -688,10 +688,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         if (!ASI::Init(hModule))
             return FALSE;
         if (!ASI::CheckSFVersion(ASI::SF_154) && !ASI::CheckSFVersion(ASI::SF_BETA))
+        {
             return FALSE;
+        }
 
         game_window = *(HWND*)(ASI::AddrOf(ASI::WINDOW_OFFSET));
-
         if (!InitializeUnitUpgradeData())
             return FALSE;
         if (!InitializeUnitIconsData())
