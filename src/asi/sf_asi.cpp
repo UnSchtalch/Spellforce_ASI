@@ -20,6 +20,7 @@ namespace ASI
 
  	unsigned int GAME_BASE; 
  	int WINDOW_OFFSET;
+ 	unsigned int APPMAIN_OFFSET;
 	void SetGameBase()
 	{
 		GAME_BASE = (unsigned int)GetModuleHandleA("spellforce.exe");
@@ -32,9 +33,15 @@ namespace ASI
 			return false;
 		ASI::SetGameBase();
 		if (CheckSFVersion(SF_154))
+		{
 			WINDOW_OFFSET = 0x97CB5C;
+			APPMAIN_OFFSET = 0x9644D0;
+		}
 		if (CheckSFVersion(SF_BETA))
+		{
 			WINDOW_OFFSET = 0x93A25C;
+			APPMAIN_OFFSET = 0x9229A8; //FIXME
+		}
 		return true;
 	}
 

@@ -101,7 +101,7 @@ namespace ASI
 
 	extern unsigned int GAME_BASE;              // start of game code, above this is probably stack? 
 	extern int WINDOW_OFFSET;          // pointer to game window is statically allocated in game exe under address GAME_BASE + WINDOW_OFFSET
-	const int APPMAIN_OFFSET = 0x9644D0;         // pointer to appmain, the entire game starts from this position in exe
+	extern unsigned int APPMAIN_OFFSET;        // pointer to appmain, the entire game starts from this position in exe
 
 	bool BeginRewrite(MemoryRegion& mem_region);
 	bool EndRewrite(MemoryRegion& mem_region);
@@ -148,7 +148,7 @@ namespace ASI
 	template<unsigned int Addr, typename Result, typename ... Args>
 	inline Result CallClassFunc(ASI::Pointer _this, Args... vals)
 	{
-		return ((Result(__thiscall*)(void*, Args...))(Addr))(_this.ptr, vals...);
+		return ((Result(__thiscall*)(void*, Args...))(ASI::AddrOf(Addr)))(_this.ptr, vals...);
 	}
 
 	template<unsigned int Offset, typename ... Args>

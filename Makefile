@@ -4,7 +4,7 @@ CC = g++
 RC = windres
 
 
-DLL_CFLAGS = -O2 -g -std=c++11 ${WARNS} -Iinclude -D ADD_EXPORTS -fpermissive
+DLL_CFLAGS = -O0 -g -std=c++11 ${WARNS} -Iinclude -D ADD_EXPORTS -fpermissive
 DLL1_LDFLAGS = -shared -s -Wl,--subsystem,windows,--out-implib,lib/buildext.a
 DLL2_LDFLAGS = -shared -s -Wl,--subsystem,windows,--out-implib,lib/new_upgrades.a
 
