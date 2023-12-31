@@ -23,6 +23,8 @@ int UPGRADE_UI_CHECK_FAIL_ABSOLUTE;
 
 int UPGRADE_CHECK_FAIL_ABSOLUTE;
 int UPGRADE_CHECK_EXEC_ABSOLUTE;
+int SPELL_TYPE_FAIL_ABSOLUTE;
+int SPELL_TYPE_EXEC_ABSOLUTE;
 
 int POST_INIT_EXEC_ABSOLUTE;
 
@@ -47,14 +49,29 @@ int MAX_BUILDING_INDEX = 64000;
 // returns if upgrade started learning OR if it was learned
 inline int upgrade_started_learning(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
 {
-    return ASI::CallClassFunc<0x641EE0, unsigned int, void*, int>
+    return ASI::CallClassFunc<0x241EE0, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
 }
 
 // returns if upgrade was learned
 inline int is_upgrade_activated(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
 {
-    return ASI::CallClassFunc<0x641F70, unsigned int, void*, int>
+    return ASI::CallClassFunc<0x241F70, unsigned int, void*, int>
+        (caller, unk_ptr, upgrade_id);
+}
+
+
+// returns if upgrade started learning OR if it was learned
+inline int upgrade_started_learning_beta(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+{
+    return ASI::CallClassFunc<0x2A5120, unsigned int, void*, int>
+        (caller, unk_ptr, upgrade_id);
+}
+
+// returns if upgrade was learned
+inline int is_upgrade_activated_beta(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+{
+    return ASI::CallClassFunc<0x2A51A0, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
 }
 
@@ -62,16 +79,33 @@ inline int is_upgrade_activated(ASI::Pointer caller, void* unk_ptr, int upgrade_
 int __stdcall upgrade_can_be_learned(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
 {
     int upg2;
+    if (ASI::CheckSFVersion(ASI::SF_154))
+    {
+        // check if previous upgrade is learned
+        if (upg_G.prev_of(upgrade_id, upg2))
+            if (!is_upgrade_activated(caller, unk_ptr, upg2))
+                return 0;
 
-    // check if previous upgrade is learned
-    if (upg_G.prev_of(upgrade_id, upg2))
-        if (!is_upgrade_activated(caller, unk_ptr, upg2))
-            return 0;
+        // check if exclusive upgrade is not learned
+        if (upg_G.get_exclusive(upgrade_id, upg2))
+            if (is_upgrade_activated(caller, unk_ptr, upg2))
+                return 0;
+    }
 
-    // check if exclusive upgrade is not learned
-    if (upg_G.get_exclusive(upgrade_id, upg2))
-        if (is_upgrade_activated(caller, unk_ptr, upg2))
-            return 0;
+    if (ASI::CheckSFVersion(ASI::SF_BETA))
+    {
+        // check if previous upgrade is learned
+        if (upg_G.prev_of(upgrade_id, upg2))
+            if (!upgrade_started_learning_beta(caller, unk_ptr, upg2))
+                return 0;
+
+        // check if exclusive upgrade is not learned
+        if (upg_G.get_exclusive(upgrade_id, upg2))
+            if (is_upgrade_activated_beta(caller, unk_ptr, upg2))
+                return 0;
+    } 
+
+
 
     return 1;
 }
@@ -192,53 +226,85 @@ void __declspec(naked) ui_check_can_upgrade_hook_beta()
         "push -0x94(%%ebp)       \n\t"
         "mov 0x37C(%%edi), %%ecx \n\t"
         "push %%ecx              \n\t"
-        "call *%0                \n\t"
+        "call %P0                \n\t"
         "test %%eax, %%eax       \n\t"
         "jz 1f                   \n\t"
         "mov -0x90(%%ebp), %%eax \n\t"
         "jmp *%1                 \n\t"
         "1: jmp *%2              \n\t":
-        :"o"(upgrade_can_be_learned), "o"(UPGRADE_UI_CHECK_EXEC_ABSOLUTE),"o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE));
+        :"i"(upgrade_can_be_learned), "o"(UPGRADE_UI_CHECK_EXEC_ABSOLUTE),"o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE));
 }
 
 void __declspec(naked) get_upgraded_unit_variant_id_hook()
 {
-    asm ("call *%0 \n\t"
+    asm ("call %P0 \n\t"
         "jmp *%1":
-        :"o"(get_upgraded_unit_variant_id), "o"(UPGRADE_EXEC_ABSOLUTE));
+        :"i"(get_upgraded_unit_variant_id), "o"(UPGRADE_EXEC_ABSOLUTE));
 }
 
 
+//REWRITE FOR BETA!!
 // required for things that are loaded before asi plugins are loaded in, to reload these things entirely
 void __stdcall post_init_modifications()
 {
     ASI::Pointer AppMain(ASI::AddrOf(ASI::APPMAIN_OFFSET));
     ASI::Pointer AppMenu = (*AppMain)[0x4];
-    ASI::Pointer appmenu_gamedata_stuff = (*AppMenu)[0x50];
-    ASI::Pointer unit_icon_list = (*appmenu_gamedata_stuff)[0x6B0];
-    ASI::Pointer unit_description_list = (*appmenu_gamedata_stuff)[0x6BC];
 
     // reload unit icon cache
     // WARNING: curently loaded cache becomes discarded!!! slight memory leak!
 
+
+    //Old and working for 1.54 code
+    if (ASI::CheckSFVersion(ASI::SF_154))
+    {
+        ASI::Pointer appmenu_gamedata_stuff = (*AppMenu)[0x50];
+        ASI::Pointer unit_icon_list = (*appmenu_gamedata_stuff)[0x6B0];
+        ASI::Pointer unit_description_list = (*appmenu_gamedata_stuff)[0x6BC];
     // initialize cache
-    ASI::CallClassFunc<0x921EF0, void*, void*, void*>
-        (unit_icon_list, AppMenu[0x44], AppMenu[0x4C]);
+        ASI::CallClassFunc<0x521EF0, void*, void*, void*>
+            (unit_icon_list, AppMenu[0x44], AppMenu[0x4C]);
 
     // load entries into cache
-    ASI::CallClassFunc<0x91B980, bool>
-        (*appmenu_gamedata_stuff);
+        ASI::CallClassFunc<0x51B980, bool>
+            (*appmenu_gamedata_stuff);
 
     // reload unit description cache
     // WARNING: currently loaded cache becomes discarded!!! slight memory leak!
 
     // initialize cache
-    ASI::CallClassFunc<0x5FD210, void*, void*, void*>
-        (unit_description_list, AppMenu[0x44], AppMenu[0x4C]);
+        ASI::CallClassFunc<0x1FD210, void*, void*, void*>
+            (unit_description_list, AppMenu[0x44], AppMenu[0x4C]);
 
     // load entries into cache
-    ASI::CallClassFunc<0x91BAC0, bool>
-        (*appmenu_gamedata_stuff);
+        ASI::CallClassFunc<0x51BAC0, bool>
+            (*appmenu_gamedata_stuff);
+        return;
+    }
+
+    //There will be dragons --functions differ a fucking lot
+    if (ASI::CheckSFVersion(ASI::SF_BETA))
+    {
+        ASI::Pointer appmenu_gamedata_stuff = (*AppMenu)[0x4C];
+        ASI::Pointer unit_icon_list = (*appmenu_gamedata_stuff)[0x698];
+        ASI::Pointer unit_description_list = (*appmenu_gamedata_stuff)[0x69C];
+        //icon cache init
+        ASI::CallClassFunc<0x579CE0, void*, void*, void*>
+            (unit_icon_list, AppMenu[0x40], AppMenu[0x48]);
+
+        ASI::CallClassFunc<0x573D40, bool>
+            (*appmenu_gamedata_stuff);
+
+
+        //unit description init
+        ASI::CallClassFunc<0x2542E0, void*, void*, void*>
+            (unit_description_list, AppMenu[0x40], AppMenu[0x48]);
+
+
+        ASI::CallClassFunc<0x573E00, bool>
+            (*appmenu_gamedata_stuff);
+
+        return;
+    }
 }
 
 void __declspec(naked) post_init_modifications_hook()
@@ -617,13 +683,25 @@ void HookLegacyVersion()
 }
 
 
+void __declspec(naked) spell_type_hook_beta()
+{
+    asm(
+        "cmpl $0xf1, %%eax\n\t"
+        "jne 1f\n\t"
+        "jmp *%1\n\t"
+        "1: cmpb $0xf0, %%al\n\t"
+        "jmp *%0\n\t\n\t":
+       : "o"(SPELL_TYPE_FAIL_ABSOLUTE),"o"(SPELL_TYPE_EXEC_ABSOLUTE));
+}
+
+
 void HookBetaVersion()
 {
     UPGRADE_EXEC_ABSOLUTE = ASI::AddrOf(0x2bb2fd);
     UPGRADE_CHECK_FAIL_ABSOLUTE = ASI::AddrOf(0x326b15);
     UPGRADE_CHECK_EXEC_ABSOLUTE = ASI::AddrOf(0x3269d2);
     UPGRADE_UI_CHECK_FAIL_ABSOLUTE = ASI::AddrOf(0x646574);//Not sure at all
-    UPGRADE_UI_CHECK_EXEC_ABSOLUTE = ASI::AddrOf(0x646511); //Do not forget to mov edi to ecx
+    UPGRADE_UI_CHECK_EXEC_ABSOLUTE = ASI::AddrOf(0x64650D); //Do not forget to mov edi to ecx
     POST_INIT_EXEC_ABSOLUTE = ASI::AddrOf(0x178340); //Seems fine, I hope?
 
     ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2f8), 5);
@@ -635,6 +713,18 @@ void HookBetaVersion()
 
     ASI::MemoryRegion mreg_ui_check_upg(ASI::AddrOf(0x646507),6);
     ASI::MemoryRegion post_init_mreg(ASI::AddrOf(0x178336), 10);
+
+
+
+    SPELL_TYPE_FAIL_ABSOLUTE = ASI::AddrOf(0x328e48);
+    SPELL_TYPE_EXEC_ABSOLUTE = ASI::AddrOf(0x32924e);
+
+    ASI::MemoryRegion spell_type_mgreg(ASI::AddrOf(0x328E43), 5);
+
+    BeginRewrite(spell_type_mgreg);
+        *(unsigned char*)(ASI::AddrOf(0x328E43)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x328E44)) = (int)(&spell_type_hook_beta) - ASI::AddrOf(0x328E48);
+    ASI::EndRewrite(spell_type_mgreg);
 
     //No need to make "beta" version of hook, since calls are the same to a point
     ASI::BeginRewrite(mreg);
@@ -661,8 +751,8 @@ void HookBetaVersion()
 
     ASI::BeginRewrite(mreg_ui_check_upg);
         *(unsigned char*)(ASI::AddrOf(0x646507)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x646508)) = (int)(&ui_check_can_upgrade_hook_beta) - ASI::AddrOf(0x64650D);
-        *(unsigned char*)(ASI::AddrOf(0x64650D)) = 0x90;   // nop instruction
+        *(int*)(ASI::AddrOf(0x646508)) = (int)(&ui_check_can_upgrade_hook_beta) - ASI::AddrOf(0x64650C);
+        *(unsigned char*)(ASI::AddrOf(0x64650C)) = 0x90;   // nop instruction
     ASI::EndRewrite(mreg_ui_check_upg);
 
     // hook into init routine at the end, to reload cache based on replaced data
