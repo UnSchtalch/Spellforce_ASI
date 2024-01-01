@@ -46,7 +46,7 @@ namespace ASI
 	}
 
 	/// check version of the game that was hooked into
-	bool CheckSFVersion(SF_Version sf_version)
+	bool __stdcall CheckSFVersion(SF_Version sf_version)
 	{
 		switch (sf_version)
 		{

@@ -107,7 +107,7 @@ namespace ASI
 	bool EndRewrite(MemoryRegion& mem_region);
 
 	bool Init(HMODULE lib_module);
-	bool CheckSFVersion(SF_Version sf_version);
+	bool __stdcall CheckSFVersion(SF_Version sf_version);
 
 
 	/// returns "real" virtual address of given memory offset

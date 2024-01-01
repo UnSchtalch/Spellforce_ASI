@@ -69,7 +69,7 @@ inline int upgrade_started_learning_beta(ASI::Pointer caller, void* unk_ptr, int
 }
 
 // returns if upgrade was learned
-inline int is_upgrade_activated_beta(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+inline int is_upgrade_activated_beta(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     return ASI::CallClassFunc<0x2A51A0, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
@@ -110,19 +110,15 @@ int __stdcall upgrade_can_be_learned(ASI::Pointer caller, void* unk_ptr, int upg
     return 1;
 }
 
-void __stdcall get_upgraded_unit_variant_id(ASI::Pointer unknown, ASI::Pointer unit_data)
+void __attribute__((thiscall)) get_upgraded_unit_variant_id(unsigned int ** __this,unsigned int unknown,unsigned short * unit_data)
 {
-    ASI::Pointer stack_pointer(0);
-    ASI::Pointer __this(0);
-    asm ( "mov %%esp, %0\n\t"
-          "mov %%ecx, %1\n\t":
-          :"m"(stack_pointer.ptr), "m"(__this.ptr));
+    unsigned int stack_ptr;
 
 /*    __asm mov stack_pointer.ptr, esp
     __asm mov __this.ptr, ecx
 */
 
-    unsigned short unit_id = (unsigned short)(unit_data[0x0]);
+    unsigned short unit_id = *unit_data;
     unsigned short upgraded_unit_id = unit_id;
     unsigned short iter_unit_id;
     unsigned short iter_upgraded_unit_id;
@@ -133,22 +129,27 @@ void __stdcall get_upgraded_unit_variant_id(ASI::Pointer unknown, ASI::Pointer u
         {
             if (iter_unit_id == unit_id)
             {
-                if (is_upgrade_activated((*__this[0x48]), unknown.ptr, i))
+                if (ASI::CheckSFVersion(ASI::SF_BETA))
                 {
-                    upgraded_unit_id = iter_upgraded_unit_id;
+                    int  (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int) = ASI::AddrOf(0x2A51A0);
+                    if ((upgrade_activated_ptr)(*(__this[0x48]), (unsigned short) unknown, i))
+                    //if (is_upgrade_activated_beta(*(__this[0x48]), (unsigned short) unknown, i))
+                    {
+                        upgraded_unit_id = iter_upgraded_unit_id;
+                    }
+                }
+                else
+                {
+                    if (is_upgrade_activated(*(__this[0x48]), (unsigned short) unknown, i))
+                    {
+                        upgraded_unit_id = iter_upgraded_unit_id;
+                    }
                 }
             }
         }
     }
 
-    (unit_data[0x0]).AsRef<unsigned short>() = upgraded_unit_id;
-
-    /*std::unordered_map<unsigned short, std::pair<int, unsigned short>>::const_iterator uud_val = unit_upgrade_data.find(unit_id);
-    if (uud_val != unit_upgrade_data.end())
-    {
-        if(is_upgrade_activated((*__this[0x48]), unknown.ptr, (*uud_val).second.first))
-            (unit_data[0x0]).AsRef<unsigned short>() = (*uud_val).second.second;
-    }*/
+    *unit_data = upgraded_unit_id;
 
     return;
 }
@@ -320,11 +321,11 @@ void __declspec(naked) post_init_modifications_hook_beta()
 {
     //function tail differs from 1.54, so I've taken one more instruction for safety
     asm(
-        "call %0\n\t"
+        "call %P0\n\t"
         "mov -0xc(%%ebp), %%ecx\n\t"
         "mov %%ecx, %%fs:0x0\n\t"
         "jmp *%1\n\t":
-        :"m"(post_init_modifications), "o"(POST_INIT_EXEC_ABSOLUTE));
+        :"i"(post_init_modifications), "o"(POST_INIT_EXEC_ABSOLUTE));
 
 }
 
@@ -728,8 +729,8 @@ void HookBetaVersion()
 
     //No need to make "beta" version of hook, since calls are the same to a point
     ASI::BeginRewrite(mreg);
-        *(unsigned char*)(ASI::AddrOf(0x2bb2f8)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x2bb2f9)) = (int)(&get_upgraded_unit_variant_id_hook) - ASI::AddrOf(0x2bb2fd);
+        *(unsigned char*)(ASI::AddrOf(0x2bb2f8)) = 0xE8;   // call. Just for lulz
+        *(int*)(ASI::AddrOf(0x2bb2f9)) = (int)(&get_upgraded_unit_variant_id) - ASI::AddrOf(0x2bb2fd);
     ASI::EndRewrite(mreg);
 
     // replace max upgrade index constant
