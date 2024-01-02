@@ -132,7 +132,7 @@ void __attribute__((thiscall)) get_upgraded_unit_variant_id(unsigned int ** __th
                 if (ASI::CheckSFVersion(ASI::SF_BETA))
                 {
                     int  (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int) = ASI::AddrOf(0x2A51A0);
-                    if ((upgrade_activated_ptr)(*(__this[0x48]), (unsigned short) unknown, i))
+                    if ((upgrade_activated_ptr)(*(void **)((int)__this+0x48), (unsigned short) unknown, i))
                     //if (is_upgrade_activated_beta(*(__this[0x48]), (unsigned short) unknown, i))
                     {
                         upgraded_unit_id = iter_upgraded_unit_id;
@@ -140,7 +140,7 @@ void __attribute__((thiscall)) get_upgraded_unit_variant_id(unsigned int ** __th
                 }
                 else
                 {
-                    if (is_upgrade_activated(*(__this[0x48]), (unsigned short) unknown, i))
+                    if (is_upgrade_activated(*(void **)((int)__this+0x48), (unsigned short) unknown, i))
                     {
                         upgraded_unit_id = iter_upgraded_unit_id;
                     }
@@ -727,7 +727,7 @@ void HookBetaVersion()
         *(int*)(ASI::AddrOf(0x328E44)) = (int)(&spell_type_hook_beta) - ASI::AddrOf(0x328E48);
     ASI::EndRewrite(spell_type_mgreg);
 
-    //No need to make "beta" version of hook, since calls are the same to a point
+
     ASI::BeginRewrite(mreg);
         *(unsigned char*)(ASI::AddrOf(0x2bb2f8)) = 0xE8;   // call. Just for lulz
         *(int*)(ASI::AddrOf(0x2bb2f9)) = (int)(&get_upgraded_unit_variant_id) - ASI::AddrOf(0x2bb2fd);
