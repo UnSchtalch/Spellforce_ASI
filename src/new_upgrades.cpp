@@ -221,8 +221,7 @@ void __declspec(naked) ui_check_can_upgrade_hook()
 
 void __declspec(naked) ui_check_can_upgrade_hook_beta()
 {
-    asm("mov -0x90(%%ebp), %%eax \n\t"
-        "add %%esi, %%eax        \n\t"
+    asm("movzw (%%ebx, %%esi), %%eax \n\t"
         "push %%eax              \n\t"
         "push -0x94(%%ebp)       \n\t"
         "mov 0x37C(%%edi), %%ecx \n\t"
