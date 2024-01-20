@@ -5,8 +5,8 @@ RC = windres
 
 
 DLL_CFLAGS = -O0 -g -std=c++11 ${WARNS} -Iinclude -D ADD_EXPORTS -fpermissive
-DLL1_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,--subsystem,windows,--out-implib,lib/buildext.a
-DLL2_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,--subsystem,windows,--out-implib,lib/new_upgrades.a
+DLL1_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/buildext.a
+DLL2_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/new_upgrades.a
 
 .PHONY: all clean
 
