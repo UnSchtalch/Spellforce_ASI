@@ -167,7 +167,7 @@ void __declspec(naked) building_register_hook(){
         "pop %0\n\t": "=c"(param_l)
         :"c"(param_l) );
 
-    processBuildingData(param_l);
+    processBuildingData((int **)param_l);
 
     asm("jmp *%0\n\t":
         :"m"(BUILD_DATA_RET));

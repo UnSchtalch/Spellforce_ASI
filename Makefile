@@ -23,7 +23,7 @@ obj/sf_asi.o: src/asi/sf_asi.cpp src/asi/sf_asi.h | obj
 	${CC} ${DLL_CFLAGS} -c "$<" -o "$@"
 
 obj/dllmain.o: src/dllmain.cpp src/asi/sf_asi.h | obj
-	${CC} ${DLL_CFLAGS} -c "$<" -o "$@"
+	${CC} ${DLL1_LDFLAGS} -c "$<" -o "$@"
 
 obj/new_upgrades.o: src/new_upgrades.cpp src/asi/sf_asi.h | obj
 	${CC} ${DLL_CFLAGS} -c "$<" -o "$@"
