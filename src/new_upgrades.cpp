@@ -47,14 +47,14 @@ unsigned short max_ui_description_index = 48;
 int MAX_BUILDING_INDEX = 64000;
 
 // returns if upgrade started learning OR if it was learned
-inline int upgrade_started_learning(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+inline int upgrade_started_learning(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     return ASI::CallClassFunc<0x241EE0, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
 }
 
 // returns if upgrade was learned
-inline int is_upgrade_activated(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+inline int is_upgrade_activated(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     return ASI::CallClassFunc<0x241F70, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
@@ -62,7 +62,7 @@ inline int is_upgrade_activated(ASI::Pointer caller, void* unk_ptr, int upgrade_
 
 
 // returns if upgrade started learning OR if it was learned
-inline int upgrade_started_learning_beta(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+inline int upgrade_started_learning_beta(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     return ASI::CallClassFunc<0x2A5120, unsigned int, void*, int>
         (caller, unk_ptr, upgrade_id);
@@ -76,7 +76,7 @@ inline int is_upgrade_activated_beta(unsigned int caller, void* unk_ptr, int upg
 }
 
 // returns if predecessor upgrade is learned (if any) and if exclusive upgrade is not learned (if any)
-int __stdcall upgrade_can_be_learned(ASI::Pointer caller, void* unk_ptr, int upgrade_id)
+int __stdcall upgrade_can_be_learned(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     int upg2;
     if (ASI::CheckSFVersion(ASI::SF_154))
@@ -94,14 +94,15 @@ int __stdcall upgrade_can_be_learned(ASI::Pointer caller, void* unk_ptr, int upg
 
     if (ASI::CheckSFVersion(ASI::SF_BETA))
     {
+        int  (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int) = ASI::AddrOf(0x2A51A0);
         // check if previous upgrade is learned
         if (upg_G.prev_of(upgrade_id, upg2))
-            if (!upgrade_started_learning_beta(caller, unk_ptr, upg2))
+            if (!(upgrade_activated_ptr)(caller, unk_ptr, upg2))
                 return 0;
 
         // check if exclusive upgrade is not learned
         if (upg_G.get_exclusive(upgrade_id, upg2))
-            if (is_upgrade_activated_beta(caller, unk_ptr, upg2))
+            if ((upgrade_activated_ptr)(caller, unk_ptr, upg2))
                 return 0;
     } 
 
