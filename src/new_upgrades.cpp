@@ -30,6 +30,8 @@ int POST_INIT_EXEC_ABSOLUTE;
 
 HWND game_window;
 
+unit_functions_t unit_functions;
+
 // unit upgrade data (unit id, (upgrade id, upgraded unit id))
 //std::unordered_map<unsigned short, std::pair<int, unsigned short>> unit_upgrade_data; 
 char max_upgrade_index = 54;          // base in game
@@ -765,6 +767,32 @@ void HookBetaVersion()
         *(int*)(ASI::AddrOf(0x17833A)) = (int)(&post_init_modifications_hook_beta) - ASI::AddrOf(0x17833E); 
     ASI::EndRewrite(post_init_mreg);
 
+}
+
+
+void init_unit_functions_beta()
+{
+    unit_functions.unit_get_health = ASI::AddrOf(0x2792F0);
+    unit_functions.unit_get_mana = ASI::AddrOf(0x279410);
+    unit_functions.unit_get_agility = ASI::AddrOf(0x278CB0);
+    unit_functions.unit_get_charisma = ASI::AddrOf(0x278EA0);
+    unit_functions.unit_get_dexterity = ASI::AddrOf(0x278F20);
+    unit_functions.unit_get_intelligence = ASI::AddrOf(0x279230);
+    unit_functions.unit_get_stamina = ASI::AddrOf(0x279790);
+    unit_functions.unit_get_strength = ASI::AddrOf(0x2797F0);
+    unit_functions.unit_get_wisdom = ASI::AddrOf(0x279AC0);
+    unit_functions.unit_get_unknown = ASI::AddrOf(0x278C30);
+    unit_functions.unit_set_health = ASI::AddrOf(0x2B6C70);
+    unit_functions.unit_set_mana = ASI::AddrOf(0x2B6CD0);
+    unit_functions.unit_set_agility = ASI::AddrOf(0x2B66E0);
+    unit_functions.unit_set_charisma = ASI::AddrOf(0x2B6870);
+    unit_functions.unit_set_dexterity = ASI::AddrOf(0x2B6970);
+    unit_functions.unit_set_intelligence = ASI::AddrOf(0x2B6B50);
+    unit_functions.unit_set_stamina = ASI::AddrOf(0x2B7030);
+    unit_functions.unit_set_strength = ASI::AddrOf(0x2B7070);
+    unit_functions.unit_set_wisdom = ASI::AddrOf(0x2B72A0);
+    unit_functions.unit_set_unknown = ASI::AddrOf(0x2B6590);
+    unit_functions.unit_set_level = ASI::AddrOf(0x2B6C10);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
