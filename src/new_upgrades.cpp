@@ -15,6 +15,7 @@ Ported to 1.61-beta by UnSchtalch
 #include "ui_unit_icons.h"
 #include "ui_unit_descriptions.h"
 #include "upgrade_tree.h"
+#include "unit_function_pointers.h"
 
 int UPGRADE_EXEC_ABSOLUTE;
 
@@ -31,6 +32,7 @@ int POST_INIT_EXEC_ABSOLUTE;
 HWND game_window;
 
 unit_functions_t unit_functions;
+upgrade_functions_t upgrade_functions;
 
 // unit upgrade data (unit id, (upgrade id, upgraded unit id))
 //std::unordered_map<unsigned short, std::pair<int, unsigned short>> unit_upgrade_data; 
@@ -96,15 +98,14 @@ int __stdcall upgrade_can_be_learned(unsigned int caller, void* unk_ptr, int upg
 
     if (ASI::CheckSFVersion(ASI::SF_BETA))
     {
-        int  (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int) = ASI::AddrOf(0x2A51A0);
         // check if previous upgrade is learned
         if (upg_G.prev_of(upgrade_id, upg2))
-            if (!(upgrade_activated_ptr)(caller, unk_ptr, upg2))
+            if (!upgrade_functions.upgrade_activated(caller, unk_ptr, upg2))
                 return 0;
 
         // check if exclusive upgrade is not learned
         if (upg_G.get_exclusive(upgrade_id, upg2))
-            if ((upgrade_activated_ptr)(caller, unk_ptr, upg2))
+            if (upgrade_functions.upgrade_activated(caller, unk_ptr, upg2))
                 return 0;
     } 
 
@@ -134,8 +135,7 @@ void __attribute__((thiscall)) get_upgraded_unit_variant_id(unsigned int ** __th
             {
                 if (ASI::CheckSFVersion(ASI::SF_BETA))
                 {
-                    int  (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int) = ASI::AddrOf(0x2A51A0);
-                    if ((upgrade_activated_ptr)(*(void **)((int)__this+0x48), (unsigned short) unknown, i))
+                    if (upgrade_functions.upgrade_activated (*(void **)((int)__this+0x48), (unsigned short) unknown, i))
                     //if (is_upgrade_activated_beta(*(__this[0x48]), (unsigned short) unknown, i))
                     {
                         upgraded_unit_id = iter_upgraded_unit_id;
@@ -770,6 +770,13 @@ void HookBetaVersion()
 }
 
 
+void init_upgrade_functions_beta()
+{
+    upgrade_functions.upgrade_activated = ASI::AddrOf(0x2A51A0);
+    upgrade_functions.cancel_ugrade = ASI::AddrOf(0x2A5080);
+    upgrade_functions.ugrade_started_learning = ASI::AddrOf(0x2A5120);
+}
+
 void init_unit_functions_beta()
 {
     unit_functions.unit_get_health = ASI::AddrOf(0x2792F0);
@@ -827,6 +834,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         if (ASI::CheckSFVersion(ASI::SF_BETA))
         {
+            init_upgrade_functions_beta();
+            init_unit_functions_beta();
             HookBetaVersion();
         }
         break;

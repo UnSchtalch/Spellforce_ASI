@@ -2,6 +2,7 @@
 
 typedef int (__thiscall *upgrade_activated_ptr)(unsigned int, void *, int);
 typedef int (__thiscall *cancel_ugrade_ptr)(unsigned int, unsigned int, short);
+typedef int (__thiscall *ugrade_started_learning_ptr)(unsigned int, unsigned int, short);
 
 typedef unsigned int (__thiscall *unit_get_health_ptr)(unsigned int, unsigned short);
 typedef unsigned int (__thiscall *unit_get_mana_ptr)(unsigned int, unsigned short);
@@ -57,4 +58,5 @@ typedef struct upg_fun_ptr
 {
 	upgrade_activated_ptr upgrade_activated;
 	cancel_ugrade_ptr cancel_ugrade;
+	ugrade_started_learning_ptr ugrade_started_learning;
 } upgrade_functions_t;
