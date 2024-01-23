@@ -27,6 +27,17 @@ typedef unsigned int (__thiscall *unit_set_wisdom_ptr)(unsigned int, unsigned in
 typedef unsigned int (__thiscall *unit_set_unknown_ptr)(unsigned int, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *unit_set_level_ptr)(unsigned int, unsigned short, unsigned int);
 
+
+typedef void (__thiscall init_unknown_stuff_f120_ptr)(void *);
+typedef void (__stdcall vector_constructor_iterator_ptr)(void *,unsigned int,unsigned int,void *(__thiscall*)(void *))
+typedef unsigned int (__thiscall get_unknown_field_23a0_ptr)(void *, unsigned short);
+typedef unsigned int (__thiscall get_unknown_data_f130_ptr) (void *, unsigned short, unsigned short);
+typedef unsigned int (__thiscall *unit_find_spawn_position_ptr)(void *, short *, unsigned short, short, unsigned int);
+typedef unsigned int (__thiscall *unit_get_data_ptr)(void *, unsigned short, unsigned int);
+typedef unsigned int (__thiscall *unit_get_another_data_ptr)(void *, unsigned short, unsigned int);
+
+
+
 typedef struct unit_fun_ptr
 {
 		unit_get_health_ptr unit_get_health;
