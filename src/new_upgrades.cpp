@@ -33,7 +33,7 @@ HWND game_window;
 
 unit_functions_t unit_functions;
 upgrade_functions_t upgrade_functions;
-
+support_functions_t support_functions;
 // unit upgrade data (unit id, (upgrade id, upgraded unit id))
 //std::unordered_map<unsigned short, std::pair<int, unsigned short>> unit_upgrade_data; 
 char max_upgrade_index = 54;          // base in game
@@ -769,12 +769,59 @@ void HookBetaVersion()
 
 }
 
+void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned short param3, unsigned int param4,unsigned int param5, unsigned short spawn_count)
+{
+    unsigned char vector_base[30];
+    unsigned int local_78;
+    unsigned int local_80;
+    unsigned short local_64 = 0;
+    unsigned short local_54 = 0;
+
+    unsigned short unit_id = 0;
+    support_functions.init_unknown_stuff_f120(&local_78); //IDK
+    void * (_thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
+    support_functions.vector_constructor_iterator((void *)vector_base, 3, 10, unknown_function_ptr); //we need 10 elements of FFFF FF, so 30 bytes
+    //here we choose what uniy we are spawning depending on race. 
+    //for test purposes -- we spawn our test unit (bare-handed warder)
+    unit_id = 2997;
+    for (int i = 1; i<spawn_count;i++)
+    {
+        unsigned short t = support_functions.get_unknown_field_23a0((void*)((unsigned int)_this+0x60), param3);
+        unsigned int t1 = support_functions.get_unknown_data_f130(&local_80, 0, 0x14);//WTF? Gotta check with debugger, wtf it's a pointer to WHERE?!
+        bool pos_found = support_functions.unit_find_spawn_position((void*)((unsigned int)_this+0x64), param3, t1, t, &local_78);
+        bool data_found = support_functions.unit_get_data((void*)((unsigned int)_this+0x50),unit_id,&local_64);
+        bool unknown_data_found = support_functions.unit_get_another_data((void*)((unsigned int)_this+0x50),unit_id,&local_54);
+        if (pos_found && unknown_data_found && data_found)
+        {
+            unsigned short t2 = support_functions.get_unknown_data_93d0((void*)((unsigned int)_this+0x48), param1);
+            t2 = support_functions.get_unknown_data_92b0((void*)((unsigned int)_this+0x24),t2);
+        }
+
+    }
+
+
+}
 
 void init_upgrade_functions_beta()
 {
     upgrade_functions.upgrade_activated = ASI::AddrOf(0x2A51A0);
     upgrade_functions.cancel_ugrade = ASI::AddrOf(0x2A5080);
     upgrade_functions.ugrade_started_learning = ASI::AddrOf(0x2A5120);
+}
+
+void init_support_functions_beta()
+{
+    support_functions.init_unknown_stuff_f120 = ASI::AddrOf(0x2CF120); //IDK WTF is it
+    support_functions.vector_constructor_iterator = ASI::AddrOf(0x174D40); //IDK why it is here
+    support_functions.get_unknown_field_23a0 = ASI::AddrOf(0x2D23A0);
+    support_functions.get_unknown_data_f130 = ASI::AddrOf(0x2CF130);
+    support_functions.unit_find_spawn_position = ASI::AddrOf(0x34E9A0);
+    support_functions.unit_get_data = ASI::AddrOf(0x26E70C0);
+    support_functions.unit_get_another_data = ASI::AddrOf(0x2686F0);
+    support_functions.get_unknown_data_93d0 = ASI::AddrOf(0x2793D0);
+    support_functions.get_unknown_data_92b0 = ASI::AddrOf(0x2792B0);
+    support_functions.figure_add = ASI::AddrOf(0x2F6082);
+    support_functions.figure_transform = ASI::AddrOf(0x300C45);
 }
 
 void init_unit_functions_beta()

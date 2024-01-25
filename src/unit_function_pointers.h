@@ -28,15 +28,33 @@ typedef unsigned int (__thiscall *unit_set_unknown_ptr)(unsigned int, unsigned i
 typedef unsigned int (__thiscall *unit_set_level_ptr)(unsigned int, unsigned short, unsigned int);
 
 
-typedef void (__thiscall init_unknown_stuff_f120_ptr)(void *);
-typedef void (__stdcall vector_constructor_iterator_ptr)(void *,unsigned int,unsigned int,void *(__thiscall*)(void *))
-typedef unsigned int (__thiscall get_unknown_field_23a0_ptr)(void *, unsigned short);
-typedef unsigned int (__thiscall get_unknown_data_f130_ptr) (void *, unsigned short, unsigned short);
+typedef void (__thiscall *init_unknown_stuff_f120_ptr)(void *);
+typedef void (__stdcall *vector_constructor_iterator_ptr)(void *,unsigned int,unsigned int,void *(__thiscall*)(void *));
+typedef unsigned int (__thiscall *get_unknown_field_23a0_ptr)(void *, unsigned short);
+typedef unsigned int (__thiscall *get_unknown_data_f130_ptr) (void *, unsigned short, unsigned short);
 typedef unsigned int (__thiscall *unit_find_spawn_position_ptr)(void *, short *, unsigned short, short, unsigned int);
 typedef unsigned int (__thiscall *unit_get_data_ptr)(void *, unsigned short, unsigned int);
 typedef unsigned int (__thiscall *unit_get_another_data_ptr)(void *, unsigned short, unsigned int);
+typedef unsigned int (__thiscall *get_unknown_data_93d0_ptr) (unsigned int, unsigned short);
+typedef unsigned int (__thiscall *get_unknown_data_92b0_ptr) (unsigned int, unsigned short);
+typedef unsigned int (__thiscall *figure_add_ptr) (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
+typedef unsigned int (__thiscall *figure_transform_ptr) (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
 
 
+typedef struct support_fun_ptr
+{
+		init_unknown_stuff_f120_ptr	init_unknown_stuff_f120;
+		vector_constructor_iterator_ptr	vector_constructor_iterator;
+		get_unknown_field_23a0_ptr get_unknown_field_23a0;
+		get_unknown_data_f130_ptr get_unknown_data_f130;
+		unit_find_spawn_position_ptr unit_find_spawn_position;
+		unit_get_data_ptr unit_get_data;
+		unit_get_another_data_ptr unit_get_another_data;
+		get_unknown_data_93d0_ptr get_unknown_data_93d0;
+		get_unknown_data_92b0_ptr get_unknown_data_92b0;
+		figure_add_ptr figure_add;
+		figure_transform_ptr figure_transform;
+} support_functions_t;
 
 typedef struct unit_fun_ptr
 {
