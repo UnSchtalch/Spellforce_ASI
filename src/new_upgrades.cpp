@@ -22,6 +22,9 @@ int UPGRADE_EXEC_ABSOLUTE;
 int UPGRADE_UI_CHECK_EXEC_ABSOLUTE;
 int UPGRADE_UI_CHECK_FAIL_ABSOLUTE;
 
+int UPGRADE_SPECIAL_EXEC_ABSOLUTE; //Pass our code and then exit
+int UPGRADE_SPECIAL_FAIL_ABSOLUTE; //not our client, run as normal
+
 int UPGRADE_CHECK_FAIL_ABSOLUTE;
 int UPGRADE_CHECK_EXEC_ABSOLUTE;
 int SPELL_TYPE_FAIL_ABSOLUTE;
@@ -697,6 +700,22 @@ void __declspec(naked) spell_type_hook_beta()
        : "o"(SPELL_TYPE_FAIL_ABSOLUTE),"o"(SPELL_TYPE_EXEC_ABSOLUTE));
 }
 
+//FIXME REDO on fresh head
+__declspec(naked) on_finish_upgrade_special_beta()
+{
+    asm("cmpb $0x36, %%al              \n\t"
+        "jne 1f                        \n\t"
+        "mov 0x24(%%edi),%%ecx          \n\t"
+        "xor %%eax, %%eax              \n\t"
+        "mov 0x4(%%ebp), %%eax         \n\t"
+        "mov 0x4(%%ecx, %%eax), %%eax  \n\t"
+        "1: cmpb $0x35, %%al           \n\t"
+        "ja *%0                        \n\t"
+        "jmp *%1                       \n\t":
+        :"o"(UPGRADE_SPECIAL_EXEC_ABSOLUTE), "o"(UPGRADE_SPECIAL_FAIL_ABSOLUTE));
+}
+
+
 
 void HookBetaVersion()
 {
@@ -769,17 +788,19 @@ void HookBetaVersion()
 
 }
 
-void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned short param3, unsigned int param4,unsigned int param5, unsigned short spawn_count)
-{
-    unsigned char vector_base[30];
-    unsigned int local_78;
-    unsigned int local_80;
-    unsigned short local_64 = 0;
-    unsigned short local_54 = 0;
 
+
+void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned short param3, unsigned short spawn_count)
+{
+    unsigned char vector_base[33];
+    unsigned int local_78[2];
+    unsigned int local_80;
+    unsigned int local_64 = 0;
+    unsigned short local_54 = 0;
+    unsigned char local_5a = 0xA6;
     unsigned short unit_id = 0;
     support_functions.init_unknown_stuff_f120(&local_78); //IDK
-    void * (_thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
+    void * (__thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
     support_functions.vector_constructor_iterator((void *)vector_base, 3, 10, unknown_function_ptr); //we need 10 elements of FFFF FF, so 30 bytes
     //here we choose what uniy we are spawning depending on race. 
     //for test purposes -- we spawn our test unit (bare-handed warder)
@@ -789,12 +810,91 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
         unsigned short t = support_functions.get_unknown_field_23a0((void*)((unsigned int)_this+0x60), param3);
         unsigned int t1 = support_functions.get_unknown_data_f130(&local_80, 0, 0x14);//WTF? Gotta check with debugger, wtf it's a pointer to WHERE?!
         bool pos_found = support_functions.unit_find_spawn_position((void*)((unsigned int)_this+0x64), param3, t1, t, &local_78);
-        bool data_found = support_functions.unit_get_data((void*)((unsigned int)_this+0x50),unit_id,&local_64);
-        bool unknown_data_found = support_functions.unit_get_another_data((void*)((unsigned int)_this+0x50),unit_id,&local_54);
+        bool data_found = support_functions.unit_get_data((void*)((unsigned int)_this+0x50),unit_id,&local_78);
+        bool unknown_data_found = support_functions.unit_get_another_data((void*)((unsigned int)_this+0x50),local_78,&local_54);
         if (pos_found && unknown_data_found && data_found)
         {
             unsigned short t2 = support_functions.get_unknown_data_93d0((void*)((unsigned int)_this+0x48), param1);
             t2 = support_functions.get_unknown_data_92b0((void*)((unsigned int)_this+0x24),t2);
+            t1 = support_functions.figure_add(_this, local_78,((int)(local_78+2)), param1, &local_54, 0xb, 0);
+            local_64 = t1 & 0xffff;
+            if (local_64 != 0)
+            {
+                support_functions.figure_transform(_this, local_64, unit_id, 0, 0);
+                t1 = support_functions.get_unknown_data_92b0((void*)((unsigned int)_this+0x24), local_64);
+                t1 = t1 & 0xff;
+                t2 = unit_functions.unit_get_unknown((void*)((unsigned int)_this+0x24), local_64);
+                unit_functions.unit_set_unknown((void*)((unsigned int)_this+0x24),local_64, 
+                    (int)(t2 * (t1 * local_5a + 5000))/10000); //Some pointer arithmetics?
+
+                t2 = unit_functions.unit_get_health((void*)((unsigned int)_this+0x24), local_64);
+                unit_functions.unit_set_health((void*)((unsigned int)_this+0x24),local_64, 
+                    (int)(t2 * (t1 * local_5a + 5000))/10000); 
+
+                t2 = unit_functions.unit_get_mana((void*)((unsigned int)_this+0x24), local_64);
+                unit_functions.unit_set_mana((void*)((unsigned int)_this+0x24),local_64, 
+                    (int)(t2 * (t1 * local_5a + 5000))/10000);
+                if (t1 < 0x1f)
+                {
+                    t2 = unit_functions.unit_get_agility((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_agility((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_charisma((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_charisma((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_dexterity((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_dexterity((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_intelligence((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_intelligence((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_stamina((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_stamina((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_strength((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_strength((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                    t2 = unit_functions.unit_get_wisdom((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_wisdom((void*)((unsigned int)_this+0x24),local_64, 
+                        (int)(t2 * (t1 * local_5a + 5000))/10000);
+                }
+                else
+                {
+                    t2 = unit_functions.unit_get_agility((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_agility((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+                    
+                    t2 = unit_functions.unit_get_charisma((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_charisma((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+                    
+                    t2 = unit_functions.unit_get_dexterity((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_dexterity((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+                    
+                    t2 = unit_functions.unit_get_intelligence((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_intelligence((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+                    
+                    t2 = unit_functions.unit_get_stamina((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_stamina((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+                    
+                    t2 = unit_functions.unit_get_strength((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_strength((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+
+                    t2 = unit_functions.unit_get_wisdom((void*)((unsigned int)_this+0x24), local_64);
+                    unit_functions.unit_set_wisdom((void*)((unsigned int)_this+0x24),local_64, 
+                        ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
+
+                    unit_functions.unit_set_level((void*)((unsigned int)_this+0x24), local_64, 
+                        (unsigned char)((((t1 * 1000)/100))*0x3c)/1000);
+
+                }
+
+            }
+
         }
 
     }
