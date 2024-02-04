@@ -647,7 +647,7 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
         {
             unsigned short t2 = support_functions.get_unknown_data_93d0(*(void**)((unsigned int)_this+0x48), param1);
             t2 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24),t2);
-            t1 = support_functions.figure_add(_this, local_74,((int)(local_74+2)), param1, &local_54, 0xb, 0);
+            t1 = support_functions.figure_add(_this, local_74,(local_74>>0x10), param1, &local_54, 0xb, 0); //local_74 is XY coordinates, where X is lower 16 bits, Y is upper
             local_64 = t1 & 0xffff;
             if (local_64 != 0)
             {
