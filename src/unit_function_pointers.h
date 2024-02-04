@@ -34,7 +34,7 @@ typedef unsigned int (__thiscall *get_unknown_field_23a0_ptr)(void *, unsigned i
 typedef unsigned int (__thiscall *get_unknown_data_f130_ptr) (void *, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *unit_find_spawn_position_ptr)(void *, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *unit_get_data_ptr)(void *, unsigned int, unsigned int);
-typedef unsigned int (__thiscall *unit_get_another_data_ptr)(void *, unsigned int, unsigned int);
+typedef unsigned int (__thiscall *unit_copy_data_ptr)(void *, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *get_unknown_data_93d0_ptr) (void *, unsigned int);
 typedef unsigned int (__thiscall *get_unknown_data_92b0_ptr) (void *, unsigned int);
 typedef unsigned int (__thiscall *figure_add_ptr) (void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
@@ -49,7 +49,7 @@ typedef struct support_fun_ptr
 		get_unknown_data_f130_ptr get_unknown_data_f130;
 		unit_find_spawn_position_ptr unit_find_spawn_position;
 		unit_get_data_ptr unit_get_data;
-		unit_get_another_data_ptr unit_get_another_data;
+		unit_copy_data_ptr unit_copy_data;
 		get_unknown_data_93d0_ptr get_unknown_data_93d0;
 		get_unknown_data_92b0_ptr get_unknown_data_92b0;
 		figure_add_ptr figure_add;

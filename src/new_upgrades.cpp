@@ -623,13 +623,14 @@ bool InitializeUnitDescriptionsData()
 void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned int param3, unsigned short spawn_count)
 {
     unsigned char vector_base[33];
-    unsigned int local_78[2];
+    unsigned int local_74;
+    unsigned int local_78;
     unsigned int local_80;
     unsigned int local_64 = 0;
-    unsigned short local_54 = 0;
+    unsigned char local_54[0x50];
     unsigned char local_5a = 0xA6;
     unsigned short unit_id = 0;
-    support_functions.init_unknown_stuff_f120(&local_78); //IDK
+    support_functions.init_unknown_stuff_f120(&local_74); //IDK
     void * (__thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
     support_functions.vector_constructor_iterator((void *)vector_base, 3, 10, unknown_function_ptr); //we need 10 elements of FFFF FF, so 30 bytes
     //here we choose what uniy we are spawning depending on race. 
@@ -639,14 +640,14 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
     {
         unsigned short t = support_functions.get_unknown_field_23a0(*(void**)((unsigned int)_this+0x60), param3);
         unsigned int t1 = support_functions.get_unknown_data_f130(&local_80, 0, 0x14);//WTF? Gotta check with debugger, wtf it's a pointer to WHERE?!
-        bool pos_found = support_functions.unit_find_spawn_position(*(void**)((unsigned int)_this+0x64), param3, t1, t, &local_78);
+        bool pos_found = support_functions.unit_find_spawn_position(*(void**)((unsigned int)_this+0x64), param3, t1, t, &local_74);
         bool data_found = support_functions.unit_get_data(*(void**)((unsigned int)_this+0x50),unit_id,&local_78);
-        bool unknown_data_found = support_functions.unit_get_another_data(*(void**)((unsigned int)_this+0x50),local_78,&local_54);
+        bool unknown_data_found = support_functions.unit_copy_data(*(void**)((unsigned int)_this+0x50),local_78,&local_54);//TODO: make sense of it!
         if (pos_found && unknown_data_found && data_found)
         {
             unsigned short t2 = support_functions.get_unknown_data_93d0(*(void**)((unsigned int)_this+0x48), param1);
             t2 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24),t2);
-            t1 = support_functions.figure_add(_this, local_78,((int)(local_78+2)), param1, &local_54, 0xb, 0);
+            t1 = support_functions.figure_add(_this, local_74,((int)(local_74+2)), param1, &local_54, 0xb, 0);
             local_64 = t1 & 0xffff;
             if (local_64 != 0)
             {
@@ -932,7 +933,7 @@ void init_support_functions_beta()
     support_functions.get_unknown_data_f130 = ASI::AddrOf(0x2CF130);
     support_functions.unit_get_data = (unit_get_data_ptr)ASI::AddrOf(0x26E7C0);
     support_functions.unit_find_spawn_position = ASI::AddrOf(0x34E9A0);
-    support_functions.unit_get_another_data = ASI::AddrOf(0x2686F0);
+    support_functions.unit_copy_data = ASI::AddrOf(0x2686F0);
     support_functions.get_unknown_data_93d0 = ASI::AddrOf(0x2793D0);
     support_functions.get_unknown_data_92b0 = ASI::AddrOf(0x2792B0);
     support_functions.figure_add = ASI::AddrOf(0x2F6082);
