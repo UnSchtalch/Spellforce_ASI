@@ -619,6 +619,25 @@ bool InitializeUnitDescriptionsData()
     return true;
 }
 
+unsigned short IsDarkRace(unsigned char race_id)
+{
+    if ((race_id != 0x1) && (race_id != 0x2) && (race_id != 0x3))
+        {
+            return 1;
+        }
+    return 0;
+}
+
+void __thiscall unit_assign_army_slots(void* _this, unsigned short unit_id, unsigned char slot_count)
+{
+    unsigned int unit_stat_offset = unit_id*0x2b3;
+    unsigned short *data = *(unsigned short *)(*(int *)((int)_this + 0x1c) + 0x1c + unit_stat_offset);
+    unsigned char is_dark_race = IsDarkRace(*(char *)(*(int *)((int)_this + 0x1c) + 0x1a + unit_stat_offset));
+    for (int i = 0; i < slot_count; i++)
+    {
+        support_functions.allocate_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race);
+    }
+}
 
 void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned int param3, unsigned short spawn_count)
 {
@@ -723,7 +742,7 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
                         (unsigned char)((((t1 * 1000)/100))*0x3c)/1000);
 
                 }
-
+                unit_assign_army_slots (*(void**)((unsigned int)_this+0x4C), local_64, 2);
             }
 
         }
@@ -938,6 +957,7 @@ void init_support_functions_beta()
     support_functions.get_unknown_data_92b0 = ASI::AddrOf(0x2792B0);
     support_functions.figure_add = ASI::AddrOf(0x2F6082);
     support_functions.figure_transform = ASI::AddrOf(0x300C45);
+    support_functions.allocate_army_slot = ASI::AddrOf(0x2A2BF0);
 }
 
 void init_unit_functions_beta()
