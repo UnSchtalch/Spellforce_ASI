@@ -671,7 +671,7 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
             if (local_64 != 0)
             {
                 support_functions.figure_transform(_this, local_64, unit_id, 0, 0);
-                t1 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24), local_64);
+                t1 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24), local_64); //get unit level probably?
                 t1 = t1 & 0xff;
                 t2 = unit_functions.unit_get_unknown(*(void**)((unsigned int)_this+0x24), local_64);
                 unit_functions.unit_set_unknown(*(void**)((unsigned int)_this+0x24),local_64, 
@@ -739,12 +739,11 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
                         ((int)(t2 * (t1 * local_5a + 5000))/10000) - 0x3c + t1 * 2);
 
                     unit_functions.unit_set_level(*(void**)((unsigned int)_this+0x24), local_64, 
-                        (unsigned char)((((t1 * 1000)/100))*0x3c)/1000);
+                        (unsigned char)(((((unsigned int) t1 * 1000)/100)*0x3c)/1000));
 
                 }
                 unit_assign_army_slots (*(void**)((unsigned int)_this+0x4C), local_64, 2);
             }
-
         }
 
     }
@@ -818,7 +817,7 @@ void HookLegacyVersion()
 
 }
 
-
+/*
 void __declspec(naked) spell_type_hook_beta()
 {
     asm(
@@ -829,22 +828,24 @@ void __declspec(naked) spell_type_hook_beta()
         "jmp *%0\n\t\n\t":
        : "o"(SPELL_TYPE_FAIL_ABSOLUTE),"o"(SPELL_TYPE_EXEC_ABSOLUTE));
 }
+*/
 
-//FIXME REDO on fresh head
+unsigned int BHANDLE_EXEC;
+unsigned int BHANDLE_FAIL;
 void __declspec(naked) on_finish_upgrade_special_beta_hook()
 {
-    asm("cmpb $0x36, %%al              \n\t"
+    asm("cmpb $0x36, %%al              \n\t" //it's -1 smh
         "jne 1f                        \n\t"
         "push $0x1                     \n\t"
         "mov 0xc(%%edi), %%ecx         \n\t"
-        "mov 0x8(%%ebp),%%eax          \n\t" //mov eax, dword ptr [ebp+param1=0x8]
-        "mov 0x4(%%ecx,%%eax), %%eax   \n\t" //mov eax, dword ptr [ecx + eax*1 + 4]
+        "mov 0x8(%%ebp), %%eax         \n\t" //mov eax, dword ptr [ebp+param1=0x8]
+        "mov 0x4(%%ecx, %%eax), %%eax  \n\t" //mov eax, dword ptr [ecx + eax*1 + 4]
         "mov %%eax, 0x8(%%ebp)         \n\t"//mov dword ptr [ebp+param1=0x8], eax
         "lea 0x8(%%ebp), %%eax         \n\t" //lea eax, [ebp+8]
         "push %%eax                    \n\t"
         "push $0x3                     \n\t"
         "push -0x4(%%ebp)              \n\t"
-        "mov 0x24(%%edi),%%ecx         \n\t"
+        "mov 0x24(%%edi), %%ecx        \n\t"
         "call %P2                      \n\t"
         "jmp 2f                        \n\t"
         "1: cmpb $0x35, %%al           \n\t"
@@ -854,6 +855,16 @@ void __declspec(naked) on_finish_upgrade_special_beta_hook()
         :"o"(UPGRADE_SPECIAL_EXEC_ABSOLUTE), "o"(UPGRADE_SPECIAL_FAIL_ABSOLUTE), "i"(spawn_custom_unit));
 }
 
+void __declspec(naked) building_manager_handle_building_hook_beta()
+{
+    asm("movzw 0x10(%%esi), %%ecx   \n\t" //and here it's raw
+        "cmpb $0x37, %%cl           \n\t"
+        "jne 1f                     \n\t"
+        "jmp *%0                    \n\t"
+        "1:lea -0x25(%%ecx), %%eax  \n\t"
+        "jmp *%1                    \n\t":
+        :"o"(BHANDLE_EXEC), "o"(BHANDLE_FAIL));
+}
 
 
 void HookBetaVersion()
@@ -867,6 +878,8 @@ void HookBetaVersion()
 
     UPGRADE_SPECIAL_FAIL_ABSOLUTE = ASI::AddrOf(0x2D8C8E);
     UPGRADE_SPECIAL_EXEC_ABSOLUTE = ASI::AddrOf(0x2D8D88);
+    BHANDLE_EXEC = ASI::AddrOf(0x2DB08E);
+    BHANDLE_FAIL = ASI::AddrOf(0x2DB077);
 
     ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2f8), 5);
     ASI::MemoryRegion mreg2(ASI::AddrOf(0x6468fe), 1);
@@ -879,6 +892,14 @@ void HookBetaVersion()
     ASI::MemoryRegion post_init_mreg(ASI::AddrOf(0x178336), 10);
 
     ASI::MemoryRegion upgrade_finish_special_mreg(ASI::AddrOf(0x2D8C88), 6);
+    ASI::MemoryRegion building_manager_handle_mreg(ASI::AddrOf(0x2DB070), 7);
+
+    ASI::BeginRewrite(building_manager_handle_mreg);
+        *(unsigned char*)(ASI::AddrOf(0x2DB070)) = 0x90;   
+        *(unsigned char*)(ASI::AddrOf(0x2DB071)) = 0x90;   
+        *(unsigned char*)(ASI::AddrOf(0x2DB072)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2DB073)) = (int)(&building_manager_handle_building_hook_beta) - ASI::AddrOf(0x2DB077);
+    ASI::EndRewrite(building_manager_handle_mreg);
 
 
     SPELL_TYPE_FAIL_ABSOLUTE = ASI::AddrOf(0x328e48);
