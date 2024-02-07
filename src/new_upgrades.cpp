@@ -661,11 +661,13 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
         unsigned int t1 = support_functions.get_unknown_data_f130(&local_80, 0, 0x14);//WTF? Gotta check with debugger, wtf it's a pointer to WHERE?!
         bool pos_found = support_functions.unit_find_spawn_position(*(void**)((unsigned int)_this+0x64), param3, t1, t, &local_74);
         bool data_found = support_functions.unit_get_data(*(void**)((unsigned int)_this+0x50),unit_id,&local_78);
-        bool unknown_data_found = support_functions.unit_copy_data(*(void**)((unsigned int)_this+0x50),local_78,&local_54);//TODO: make sense of it!
+        bool unknown_data_found = support_functions.unit_copy_data(*(void**)((unsigned int)_this+0x50),local_78,&local_54);
         if (pos_found && unknown_data_found && data_found)
         {
-            unsigned short t2 = support_functions.get_unknown_data_93d0(*(void**)((unsigned int)_this+0x48), param1);
-            t2 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24),t2);
+            unsigned short t2 = support_functions.get_unknown_data_93d0(*(void**)((unsigned int)_this+0x48), param1); //get player figure id
+            t2 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24),t2); //get avatar level
+            local_54[2] = t2 & 0xFF; //Probably right..?
+            local_54[3] = 0x00;
             t1 = support_functions.figure_add(_this, local_74,(local_74>>0x10), param1, &local_54, 0xb, 0); //local_74 is XY coordinates, where X is lower 16 bits, Y is upper
             local_64 = t1 & 0xffff;
             if (local_64 != 0)
