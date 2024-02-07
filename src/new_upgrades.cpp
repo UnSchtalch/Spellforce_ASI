@@ -342,6 +342,7 @@ struct upgrade_line
     unsigned short unit_base_id;
     unsigned short unit_upgrade_id;
     int upgrade_id2;
+    int spawn_count;
 };
 
 // returns if successfully read
@@ -405,44 +406,22 @@ bool parse_upgrade_command(char* str, upgrade_line* upgl)
         if (!readint<int>(str, index, upgl->upgrade_id1)) return false;
         if (!readint<int>(str, index, upgl->upgrade_id2)) return false;
     }
-    else
-        upgl->command_type = -1;
-
-    return true;
-}
-
-/*bool InitializeUnitUpgradeData()
-{
-    std::fstream myfile("upgrades_config", std::ios_base::in);
-    if (!myfile.is_open())
-        return false;
-
-    unsigned short unit_base_id;
-    int upgrade_id;
-    unsigned short unit_upgrade_id;
-    while (!myfile.fail())
+    else if (strcmp(command, "spawn") == 0)
     {
-        myfile >> unit_base_id;
-        if (myfile.eof())
-            break;
+        upgl->command_type = 3;
+        if (!readint<int>(str, index, upgl->upgrade_id1)) return false;
+        if (!readint<unsigned short>(str, index, upgl->unit_upgrade_id)) return false;
+        if (!readint<int>(str, index, upgl->spawn_count)) return false;
 
-        myfile >> upgrade_id;
-        myfile >> unit_upgrade_id;
-
-        unit_upgrade_data.emplace(unit_base_id, std::pair<int, unsigned short>(upgrade_id, unit_upgrade_id));
-
-        if (upgrade_id > max_upgrade_index)
-            max_upgrade_index = (char)upgrade_id;
+    }
+    else 
+    {
+        upgl->command_type = -1;
     }
 
-    if (!myfile.eof())
-    return false;
-
-    myfile.close();
-
     return true;
 }
-*/
+
 
 bool InitializeUnitUpgradeData()
 {
@@ -519,6 +498,25 @@ bool InitializeUnitUpgradeData()
             {
                 sprintf_s(message, 100, "Could not exclude upgrade %i from %i (line %i)", upg_l.upgrade_id1, upg_l.upgrade_id2, line_c);
                 MessageBoxA(game_window, message, "New upgrades message", MB_OK);
+                myfile.close();
+                return false;
+            }
+            break;
+        }
+        case 3:
+        {
+            if (!upg_G.add_spawn(upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count))
+            {
+                sprintf_s(message, 100, "Could not add upgrade %i (units %hi, %hi) (line %i)", upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count, line_c);
+                MessageBoxA(game_window, message, "New upgrades message", MB_OK);
+                myfile.close();
+                return false;
+            }
+
+            if (upg_l.upgrade_id1 > max_upgrade_index)
+                max_upgrade_index = upg_l.upgrade_id1;
+            if (MAX_G_SIZE <= upg_l.upgrade_id1)
+            {
                 myfile.close();
                 return false;
             }
@@ -639,7 +637,7 @@ void __thiscall unit_assign_army_slots(void* _this, unsigned short unit_id, unsi
     }
 }
 
-void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned short race_id, unsigned int param3, unsigned short spawn_count)
+void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned int param3, unsigned short upgrade_id)
 {
     unsigned char vector_base[33];
     unsigned int local_74;
@@ -649,12 +647,17 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
     unsigned char local_54[0x50];
     unsigned char local_5a = 0xA6;
     unsigned short unit_id = 0;
+    unsigned short spawn_count = 0;
     support_functions.init_unknown_stuff_f120(&local_74); //IDK
     void * (__thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
     support_functions.vector_constructor_iterator((void *)vector_base, 3, 10, unknown_function_ptr); //we need 10 elements of FFFF FF, so 30 bytes
-    //here we choose what uniy we are spawning depending on race. 
+    //here we choose what unit we are spawning depending on race. 
+    if (!upg_G.get_spawn_data(upgrade_id+1, unit_id, spawn_count)) //yes, game counts them from 0 internally here, gotta +1 id
+        return false;
+
     //for test purposes -- we spawn our test unit (bare-handed warder)
-    unit_id = 2997;
+    //unit_id = 2997;
+    
     for (int i = 0; i<spawn_count;i++)
     {
         unsigned short t = support_functions.get_unknown_field_23a0(*(void**)((unsigned int)_this+0x60), param3);
@@ -664,16 +667,16 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned sho
         bool unknown_data_found = support_functions.unit_copy_data(*(void**)((unsigned int)_this+0x50),local_78,&local_54);
         if (pos_found && unknown_data_found && data_found)
         {
-            unsigned short t2 = support_functions.get_unknown_data_93d0(*(void**)((unsigned int)_this+0x48), param1); //get player figure id
-            t2 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24),t2); //get avatar level
+            unsigned short t2 = support_functions.get_player_figure_id(*(void**)((unsigned int)_this+0x48), param1); //get player figure id
+            t2 = support_functions.unit_get_level(*(void**)((unsigned int)_this+0x24),t2); //get avatar level
             local_54[2] = t2 & 0xFF; //Probably right..?
-            local_54[3] = 0x00;
+            local_54[3] = 0x00; //here we apply level of hero to unit
             t1 = support_functions.figure_add(_this, local_74,(local_74>>0x10), param1, &local_54, 0xb, 0); //local_74 is XY coordinates, where X is lower 16 bits, Y is upper
             local_64 = t1 & 0xffff;
             if (local_64 != 0)
             {
                 support_functions.figure_transform(_this, local_64, unit_id, 0, 0);
-                t1 = support_functions.get_unknown_data_92b0(*(void**)((unsigned int)_this+0x24), local_64); //get unit level probably?
+                t1 = support_functions.unit_get_level(*(void**)((unsigned int)_this+0x24), local_64); //get unit level
                 t1 = t1 & 0xff;
                 t2 = unit_functions.unit_get_unknown(*(void**)((unsigned int)_this+0x24), local_64);
                 unit_functions.unit_set_unknown(*(void**)((unsigned int)_this+0x24),local_64, 
@@ -837,15 +840,14 @@ unsigned int BHANDLE_FAIL;
 void __declspec(naked) on_finish_upgrade_special_beta_hook()
 {
     asm("cmpb $0x36, %%al              \n\t" //it's -1 smh
-        "jne 1f                        \n\t"
-        "push $0x1                     \n\t"
+        "jl 1f                         \n\t"
+        "push %%eax                    \n\t"
         "mov 0xc(%%edi), %%ecx         \n\t"
         "mov 0x8(%%ebp), %%eax         \n\t" //mov eax, dword ptr [ebp+param1=0x8]
         "mov 0x4(%%ecx, %%eax), %%eax  \n\t" //mov eax, dword ptr [ecx + eax*1 + 4]
         "mov %%eax, 0x8(%%ebp)         \n\t"//mov dword ptr [ebp+param1=0x8], eax
         "lea 0x8(%%ebp), %%eax         \n\t" //lea eax, [ebp+8]
         "push %%eax                    \n\t"
-        "push $0x3                     \n\t"
         "push -0x4(%%ebp)              \n\t"
         "mov 0x24(%%edi), %%ecx        \n\t"
         "call %P2                      \n\t"
@@ -857,7 +859,7 @@ void __declspec(naked) on_finish_upgrade_special_beta_hook()
         :"o"(UPGRADE_SPECIAL_EXEC_ABSOLUTE), "o"(UPGRADE_SPECIAL_FAIL_ABSOLUTE), "i"(spawn_custom_unit));
 }
 
-void __declspec(naked) building_manager_handle_building_hook_beta()
+void __declspec(naked) building_manager_handle_building_hook_beta() //gotta figure out, how to cancel upgrade
 {
     asm("movzw 0x10(%%esi), %%ecx   \n\t" //and here it's raw
         "cmpb $0x37, %%cl           \n\t"
@@ -976,8 +978,8 @@ void init_support_functions_beta()
     support_functions.unit_get_data = (unit_get_data_ptr)ASI::AddrOf(0x26E7C0);
     support_functions.unit_find_spawn_position = ASI::AddrOf(0x34E9A0);
     support_functions.unit_copy_data = ASI::AddrOf(0x2686F0);
-    support_functions.get_unknown_data_93d0 = ASI::AddrOf(0x2793D0);
-    support_functions.get_unknown_data_92b0 = ASI::AddrOf(0x2792B0);
+    support_functions.get_player_figure_id = ASI::AddrOf(0x2793D0);
+    support_functions.unit_get_level = ASI::AddrOf(0x2792B0);
     support_functions.figure_add = ASI::AddrOf(0x2F6082);
     support_functions.figure_transform = ASI::AddrOf(0x300C45);
     support_functions.allocate_army_slot = ASI::AddrOf(0x2A2BF0);

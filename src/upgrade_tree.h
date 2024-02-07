@@ -7,6 +7,7 @@ struct upgrade_node
 	std::vector<unsigned short> unit_upgrade_id;
 	int prev = -1;
 	int exclusive = -1;
+	int count = -1;
 };
 
 struct upgrade_graph
@@ -30,7 +31,28 @@ public:
 
 		return true;
 	}
+	bool add_spawn(int u, unsigned short id, unsigned short count)
+	{
+		if ((nodes.size() <= u) || (count == 0))
+			return false;
 
+		nodes[u].unit_upgrade_id.push_back(id);
+		nodes[u].count = count;
+		return true;
+	}
+
+	bool get_spawn_data (int u, unsigned short &unit_id, unsigned short &spawn_count) const
+	{
+		if (nodes.size() <= u)
+			return false;
+		if (nodes[u].count < 1)
+			return false;
+
+		unit_id = nodes[u].unit_upgrade_id.back();
+		spawn_count = nodes[u].count;
+		return true;
+
+	}
 	// gets base unit at given upgrade
 	// since one upgrade can upgrade many units, a specific index is required
 	bool get_base_unit(int u, int i, unsigned short& base) const

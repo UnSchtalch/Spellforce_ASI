@@ -35,8 +35,8 @@ typedef unsigned int (__thiscall *get_unknown_data_f130_ptr) (void *, unsigned i
 typedef unsigned int (__thiscall *unit_find_spawn_position_ptr)(void *, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *unit_get_data_ptr)(void *, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *unit_copy_data_ptr)(void *, unsigned int, unsigned int);
-typedef unsigned int (__thiscall *get_unknown_data_93d0_ptr) (void *, unsigned int);
-typedef unsigned int (__thiscall *get_unknown_data_92b0_ptr) (void *, unsigned int);
+typedef unsigned int (__thiscall *get_player_figure_id_ptr) (void *, unsigned int);
+typedef unsigned int (__thiscall *unit_get_level_ptr) (void *, unsigned int);
 typedef unsigned int (__thiscall *figure_add_ptr) (void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *figure_transform_ptr) (void *, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef void (__thiscall *allocate_army_slot_ptr) (void *, unsigned int, unsigned int);
@@ -50,8 +50,8 @@ typedef struct support_fun_ptr
 		unit_find_spawn_position_ptr unit_find_spawn_position;
 		unit_get_data_ptr unit_get_data;
 		unit_copy_data_ptr unit_copy_data;
-		get_unknown_data_93d0_ptr get_unknown_data_93d0;
-		get_unknown_data_92b0_ptr get_unknown_data_92b0;
+		get_player_figure_id_ptr get_player_figure_id;
+		unit_get_level_ptr unit_get_level;
 		figure_add_ptr figure_add;
 		figure_transform_ptr figure_transform;
 		allocate_army_slot_ptr allocate_army_slot;
