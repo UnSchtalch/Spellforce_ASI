@@ -8,6 +8,7 @@ struct upgrade_node
 	int prev = -1;
 	int exclusive = -1;
 	int count = -1;
+	bool is_repeatable = false;
 };
 
 struct upgrade_graph
@@ -41,6 +42,21 @@ public:
 		return true;
 	}
 
+	bool set_repeatable(int u)
+	{	
+		if (nodes.size() <= u)
+			return false;
+		nodes[u].is_repeatable = true;
+		return true;
+	}
+
+	bool get_repeatable (int u)
+	{
+		if (nodes.size() <= u)
+			return false;
+		return nodes[u].is_repeatable;
+	}
+	
 	bool get_spawn_data (int u, unsigned short &unit_id, unsigned short &spawn_count) const
 	{
 		if (nodes.size() <= u)

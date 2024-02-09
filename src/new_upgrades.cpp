@@ -414,6 +414,11 @@ bool parse_upgrade_command(char* str, upgrade_line* upgl)
         if (!readint<int>(str, index, upgl->spawn_count)) return false;
 
     }
+    else if (strcmp(command, "repeatable") == 0)
+    {
+        upgl->command_type = 4;
+        if (!readint<int>(str, index, upgl->upgrade_id1)) return false;
+    }
     else 
     {
         upgl->command_type = -1;
@@ -503,7 +508,7 @@ bool InitializeUnitUpgradeData()
             }
             break;
         }
-        case 3:
+        case 3: //spawn
         {
             if (!upg_G.add_spawn(upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count))
             {
@@ -520,6 +525,15 @@ bool InitializeUnitUpgradeData()
                 myfile.close();
                 return false;
             }
+            break;
+        }
+        case 4: //repeatable
+        {
+            if (!upg_G.set_repeatable(upg_l.upgrade_id1))
+            {
+                myfile.close();
+                return false;
+            } 
             break;
         }
         default:
@@ -859,15 +873,25 @@ void __declspec(naked) on_finish_upgrade_special_beta_hook()
         :"o"(UPGRADE_SPECIAL_EXEC_ABSOLUTE), "o"(UPGRADE_SPECIAL_FAIL_ABSOLUTE), "i"(spawn_custom_unit));
 }
 
+int __attribute__((no_caller_saved_registers, thiscall)) is_upgrade_repeatable(unsigned char uprgade_id)
+{
+    if (upg_G.get_repeatable(uprgade_id))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 void __declspec(naked) building_manager_handle_building_hook_beta() //gotta figure out, how to cancel upgrade
 {
     asm("movzw 0x10(%%esi), %%ecx   \n\t" //and here it's raw
-        "cmpb $0x37, %%cl           \n\t"
-        "jne 1f                     \n\t"
+        "call %P2                   \n\t"
+        "test %%eax, %%eax          \n\t"
+        "je 1f                      \n\t"
         "jmp *%0                    \n\t"
         "1:lea -0x25(%%ecx), %%eax  \n\t"
         "jmp *%1                    \n\t":
-        :"o"(BHANDLE_EXEC), "o"(BHANDLE_FAIL));
+        :"o"(BHANDLE_EXEC), "o"(BHANDLE_FAIL), "i"(is_upgrade_repeatable):"ecx");
 }
 
 

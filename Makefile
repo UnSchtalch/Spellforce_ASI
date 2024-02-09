@@ -26,7 +26,7 @@ obj/dllmain.o: src/dllmain.cpp src/asi/sf_asi.h | obj
 	${CC} ${DLL1_LDFLAGS} -c "$<" -o "$@"
 
 obj/new_upgrades.o: src/new_upgrades.cpp src/asi/sf_asi.h | obj
-	${CC} ${DLL_CFLAGS} -c "$<" -o "$@"
+	${CC} -mgeneral-regs-only ${DLL_CFLAGS} -c "$<" -o "$@"
 
 bin/new_upgrades.asi: ${NEWUPGD_OBJ}| bin lib
 	${CC} -o "$@" ${NEWUPGD_OBJ} ${DLL2_LDFLAGS}
