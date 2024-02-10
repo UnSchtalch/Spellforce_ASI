@@ -409,9 +409,11 @@ bool parse_upgrade_command(char* str, upgrade_line* upgl)
     else if (strcmp(command, "spawn") == 0)
     {
         upgl->command_type = 3;
-        if (!readint<int>(str, index, upgl->upgrade_id1)) return false;
-        if (!readint<unsigned short>(str, index, upgl->unit_upgrade_id)) return false;
-        if (!readint<int>(str, index, upgl->spawn_count)) return false;
+        if (!readint<int>(str, index, upgl->upgrade_id1)) return false; //ID
+        if (!readint<unsigned short>(str, index, upgl->unit_upgrade_id)) return false; //spawn unit id
+        if (!readint<int>(str, index, upgl->spawn_count)) return false; // spawn count
+        if (!readint<unsigned short>(str, index, upgl->unit_base_id)) return false; //supply cost per unit
+
 
     }
     else if (strcmp(command, "repeatable") == 0)
@@ -510,7 +512,7 @@ bool InitializeUnitUpgradeData()
         }
         case 3: //spawn
         {
-            if (!upg_G.add_spawn(upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count))
+            if (!upg_G.add_spawn(upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count, upg_l.unit_base_id))
             {
                 sprintf_s(message, 100, "Could not add upgrade %i (units %hi, %hi) (line %i)", upg_l.upgrade_id1, upg_l.unit_upgrade_id, upg_l.spawn_count, line_c);
                 MessageBoxA(game_window, message, "New upgrades message", MB_OK);
@@ -640,6 +642,45 @@ unsigned short IsDarkRace(unsigned char race_id)
     return 0;
 }
 
+void __thiscall on_unit_death(void * _this, unsigned short unit_id)
+{
+    unsigned int unit_stat_offset = unit_id*0x2b3;
+    unsigned short *data = *(unsigned short *)(*(int *)((int)_this + 0x1c) + 0x1c + unit_stat_offset);
+    unsigned char is_dark_race = IsDarkRace(*(char *)(*(int *)((int)_this + 0x1c) + 0x1a + unit_stat_offset));
+    unsigned short upg_unit_id;
+    unsigned short spawn_count;
+    unsigned short supply_cost;
+    for (int i = 0; i <= max_upgrade_index; i++)
+    {
+        if (upg_G.get_spawn_data(i, upg_unit_id, spawn_count, supply_cost))
+        {
+            if (supply_cost > 1)
+            {
+                for (int j = 0; j < supply_cost-1; j++)
+                {
+                    support_functions.free_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race);
+                }
+            }
+        }
+    } 
+
+}
+
+
+unsigned int UNIT_DEATH_RET;
+void __declspec(naked) on_unit_death_beta_hook()
+{
+    asm("mov %%edi, %%ecx         \n\t"
+        "push 0x8(%%ebp)          \n\t"
+        "call %P1                 \n\t"
+        "pop %%edi                \n\t"
+        "pop %%esi                \n\t"
+        "xor %%eax, %%eax         \n\t"
+        "pop %%ebx                \n\t"
+        "jmp *%0                  \n\t":
+        :"o"(UNIT_DEATH_RET), "i"(on_unit_death));
+}
+
 void __thiscall unit_assign_army_slots(void* _this, unsigned short unit_id, unsigned char slot_count)
 {
     unsigned int unit_stat_offset = unit_id*0x2b3;
@@ -662,11 +703,12 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned int
     unsigned char local_5a = 0xA6;
     unsigned short unit_id = 0;
     unsigned short spawn_count = 0;
+    unsigned short unit_cost = 0;
     support_functions.init_unknown_stuff_f120(&local_74); //IDK
     void * (__thiscall *unknown_function_ptr)(void *) = ASI::AddrOf(0x17DA10);
     support_functions.vector_constructor_iterator((void *)vector_base, 3, 10, unknown_function_ptr); //we need 10 elements of FFFF FF, so 30 bytes
     //here we choose what unit we are spawning depending on race. 
-    if (!upg_G.get_spawn_data(upgrade_id+1, unit_id, spawn_count)) //yes, game counts them from 0 internally here, gotta +1 id
+    if (!upg_G.get_spawn_data(upgrade_id+1, unit_id, spawn_count, unit_cost)) //yes, game counts them from 0 internally here, gotta +1 id
         return false;
 
     //for test purposes -- we spawn our test unit (bare-handed warder)
@@ -761,7 +803,7 @@ void __thiscall spawn_custom_unit(void *_this, unsigned int param1, unsigned int
                         (unsigned char)(((((unsigned int) t1 * 1000)/100)*0x3c)/1000));
 
                 }
-                unit_assign_army_slots (*(void**)((unsigned int)_this+0x4C), local_64, 2);
+                unit_assign_army_slots (*(void**)((unsigned int)_this+0x4C), local_64, unit_cost);
             }
         }
 
@@ -909,6 +951,8 @@ void HookBetaVersion()
     BHANDLE_EXEC = ASI::AddrOf(0x2DB08E);
     BHANDLE_FAIL = ASI::AddrOf(0x2DB077);
 
+    UNIT_DEATH_RET = ASI::AddrOf(0x326F32);
+
     ASI::MemoryRegion mreg (ASI::AddrOf(0x2bb2f8), 5);
     ASI::MemoryRegion mreg2(ASI::AddrOf(0x6468fe), 1);
     ASI::MemoryRegion mreg3(ASI::AddrOf(0x573d90), 9);
@@ -921,6 +965,13 @@ void HookBetaVersion()
 
     ASI::MemoryRegion upgrade_finish_special_mreg(ASI::AddrOf(0x2D8C88), 6);
     ASI::MemoryRegion building_manager_handle_mreg(ASI::AddrOf(0x2DB070), 7);
+
+    ASI::MemoryRegion unit_death_mreg(ASI::AddrOf(0x326F2D), 5);
+
+    ASI::BeginRewrite(unit_death_mreg);
+       *(unsigned char*)(ASI::AddrOf(0x326F2D)) = 0xE9;   // jmp instruction
+       *(int*)(ASI::AddrOf(0x326F2E)) = (int)(&on_unit_death_beta_hook) - ASI::AddrOf(0x326F32);
+    ASI::EndRewrite(unit_death_mreg);
 
     ASI::BeginRewrite(building_manager_handle_mreg);
         *(unsigned char*)(ASI::AddrOf(0x2DB070)) = 0x90;   
@@ -938,14 +989,6 @@ void HookBetaVersion()
         *(unsigned char*)(ASI::AddrOf(0x2D8C89)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x2D8C8A)) = (int)(&on_finish_upgrade_special_beta_hook) - ASI::AddrOf(0x2D8C8E);
     ASI::EndRewrite(upgrade_finish_special_mreg);
-/*
-    ASI::MemoryRegion spell_type_mgreg(ASI::AddrOf(0x328E43), 5);
-
-    BeginRewrite(spell_type_mgreg);
-        *(unsigned char*)(ASI::AddrOf(0x328E43)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x328E44)) = (int)(&on_finish_upgrade_special_beta_hook) - ASI::AddrOf(0x328E48);
-    ASI::EndRewrite(spell_type_mgreg);
-*/
 
     ASI::BeginRewrite(mreg);
         *(unsigned char*)(ASI::AddrOf(0x2bb2f8)) = 0xE8;   // call. Just for lulz
@@ -1003,10 +1046,11 @@ void init_support_functions_beta()
     support_functions.unit_find_spawn_position = ASI::AddrOf(0x34E9A0);
     support_functions.unit_copy_data = ASI::AddrOf(0x2686F0);
     support_functions.get_player_figure_id = ASI::AddrOf(0x2793D0);
-    support_functions.unit_get_level = ASI::AddrOf(0x2792B0);
-    support_functions.figure_add = ASI::AddrOf(0x2F6082);
-    support_functions.figure_transform = ASI::AddrOf(0x300C45);
-    support_functions.allocate_army_slot = ASI::AddrOf(0x2A2BF0);
+    support_functions.unit_get_level = (unit_get_level_ptr)ASI::AddrOf(0x2792B0);
+    support_functions.figure_add = (figure_add_ptr)ASI::AddrOf(0x2F6082);
+    support_functions.figure_transform = (figure_transform_ptr)ASI::AddrOf(0x300C45);
+    support_functions.allocate_army_slot = (allocate_army_slot_ptr)ASI::AddrOf(0x2A2BF0);
+    support_functions.free_army_slot = (free_army_slot_ptr)ASI::AddrOf(0x2A1D80);
 }
 
 void init_unit_functions_beta()

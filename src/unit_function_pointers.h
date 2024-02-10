@@ -40,6 +40,7 @@ typedef unsigned int (__thiscall *unit_get_level_ptr) (void *, unsigned int);
 typedef unsigned int (__thiscall *figure_add_ptr) (void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef unsigned int (__thiscall *figure_transform_ptr) (void *, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef void (__thiscall *allocate_army_slot_ptr) (void *, unsigned int, unsigned int);
+typedef void (__thiscall *free_army_slot_ptr) (void *, unsigned int, unsigned int);
 
 typedef struct support_fun_ptr
 {
@@ -55,6 +56,7 @@ typedef struct support_fun_ptr
 		figure_add_ptr figure_add;
 		figure_transform_ptr figure_transform;
 		allocate_army_slot_ptr allocate_army_slot;
+		free_army_slot_ptr free_army_slot;
 } support_functions_t;
 
 typedef struct unit_fun_ptr

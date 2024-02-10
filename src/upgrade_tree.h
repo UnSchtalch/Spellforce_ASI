@@ -9,6 +9,7 @@ struct upgrade_node
 	int exclusive = -1;
 	int count = -1;
 	bool is_repeatable = false;
+	int supply_cost = -1;
 };
 
 struct upgrade_graph
@@ -32,13 +33,14 @@ public:
 
 		return true;
 	}
-	bool add_spawn(int u, unsigned short id, unsigned short count)
+	bool add_spawn(int u, unsigned short id, unsigned short count, unsigned short supply_cost)
 	{
 		if ((nodes.size() <= u) || (count == 0))
 			return false;
 
 		nodes[u].unit_upgrade_id.push_back(id);
 		nodes[u].count = count;
+		nodes[u].supply_cost = supply_cost;
 		return true;
 	}
 
@@ -56,8 +58,8 @@ public:
 			return false;
 		return nodes[u].is_repeatable;
 	}
-	
-	bool get_spawn_data (int u, unsigned short &unit_id, unsigned short &spawn_count) const
+
+	bool get_spawn_data (int u, unsigned short &unit_id, unsigned short &spawn_count, unsigned short &supply_cost) const
 	{
 		if (nodes.size() <= u)
 			return false;
@@ -66,6 +68,7 @@ public:
 
 		unit_id = nodes[u].unit_upgrade_id.back();
 		spawn_count = nodes[u].count;
+		supply_cost = nodes[u].supply_cost;
 		return true;
 
 	}
