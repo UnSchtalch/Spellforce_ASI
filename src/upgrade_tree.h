@@ -106,7 +106,8 @@ public:
 			return false;
 		if (nodes[u].unit_upgrade_id.size() <= i)
 			return false;
-
+		if (nodes[u].count > 0)
+			return false;
 		base = nodes[u].unit_base_id[i];
 		upgrade = nodes[u].unit_upgrade_id[i];
 		return true;
