@@ -27,6 +27,10 @@ int UPGRADE_SPECIAL_FAIL_ABSOLUTE; //not our client, run as normal
 
 int UPGRADE_CHECK_FAIL_ABSOLUTE;
 int UPGRADE_CHECK_EXEC_ABSOLUTE;
+
+int UPGRADE_UI_CHECK_SUPPLY_EXEC;
+int UPGRADE_UI_CHECK_SUPPLY_FAIL;
+
 int SPELL_TYPE_FAIL_ABSOLUTE;
 int SPELL_TYPE_EXEC_ABSOLUTE;
 
@@ -52,6 +56,16 @@ unsigned short max_ui_description_index = 48;
 
 
 int MAX_BUILDING_INDEX = 64000;
+
+
+unsigned short IsDarkRace(unsigned char race_id)
+{
+    if ((race_id != 0x1) && (race_id != 0x2) && (race_id != 0x3))
+        {
+            return 1;
+        }
+    return 0;
+}
 
 // returns if upgrade started learning OR if it was learned
 inline int upgrade_started_learning(unsigned int caller, void* unk_ptr, int upgrade_id)
@@ -83,7 +97,7 @@ inline int is_upgrade_activated_beta(unsigned int caller, void* unk_ptr, int upg
 }
 
 // returns if predecessor upgrade is learned (if any) and if exclusive upgrade is not learned (if any)
-int __stdcall upgrade_can_be_learned(unsigned int caller, void* unk_ptr, int upgrade_id)
+int __attribute__((no_caller_saved_registers, thiscall)) upgrade_can_be_learned(unsigned int caller, void* unk_ptr, int upgrade_id)
 {
     int upg2;
     if (ASI::CheckSFVersion(ASI::SF_154))
@@ -177,7 +191,6 @@ void __declspec(naked) check_can_upgrade_hook()
     }*/
     asm("push %%esi\n\t"
         "push %%ebp\n\t"
-        "push %%ecx\n\t"
         "call *%0\n\t"
         "test %%eax, %%eax\n\t"
         "jz 1f\n\t"
@@ -214,7 +227,6 @@ void __declspec(naked) ui_check_can_upgrade_hook()
         "push %%eax\n\t"
         "push %%ecx\n\t"
         "mov 0x37C(%%edi), %%ecx\n\t"
-        "push %%ecx\n\t"
         "call *%0\n\t"
         "test %%eax, %%eax\n\t"
         "jz 1f\n\t"
@@ -228,17 +240,55 @@ void __declspec(naked) ui_check_can_upgrade_hook()
 void __declspec(naked) ui_check_can_upgrade_hook_beta()
 {
     asm("movzw (%%ebx, %%esi), %%eax \n\t"
-        "push %%eax              \n\t"
-        "push -0x94(%%ebp)       \n\t"
-        "mov 0x37C(%%edi), %%ecx \n\t"
-        "push %%ecx              \n\t"
-        "call %P0                \n\t"
-        "test %%eax, %%eax       \n\t"
-        "jz 1f                   \n\t"
-        "mov -0x90(%%ebp), %%eax \n\t"
-        "jmp *%1                 \n\t"
-        "1: jmp *%2              \n\t":
+        "push %%eax                  \n\t"
+        "push -0x94(%%ebp)           \n\t"
+        "mov 0x37C(%%edi), %%ecx     \n\t"
+        "call %P0                    \n\t"
+        "test %%eax, %%eax           \n\t"
+        "jz 1f                       \n\t"
+        "mov -0x90(%%ebp), %%eax     \n\t"
+        "jmp *%1                     \n\t"
+        "1: jmp *%2                  \n\t":
         :"i"(upgrade_can_be_learned), "o"(UPGRADE_UI_CHECK_EXEC_ABSOLUTE),"o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE));
+}
+
+
+bool __attribute__((no_caller_saved_registers, thiscall)) check_available_supply(void * _this, unsigned int upg_id, unsigned int unk_data, unsigned int building_id)
+{
+
+    unsigned short unit_id, spawn_count, supply_cost;
+    if (upg_G.get_spawn_data(upg_id, unit_id, spawn_count, supply_cost))
+    {
+        void * (__thiscall *building_get_race)(void *, unsigned int) = ASI::AddrOf(0x2C6820);
+        unsigned short (__thiscall *player_get_warrior_count) (void *, unsigned int, unsigned short) = ASI::AddrOf(0x2A2900);
+        unsigned int (__thiscall *limit_support_function)(void *) = ASI::AddrOf(0x27741F);
+        unsigned short (__thiscall *get_unit_limit) (void *, unsigned int, unsigned short) = ASI::AddrOf(0x327C50);
+        unsigned short race = building_get_race(*(void **)((int)_this + 0x380),building_id);
+        unsigned short side = IsDarkRace(race);
+        unsigned short warrior_count = player_get_warrior_count(*(void **)((int)_this + 0x37c), unk_data, side);
+        unsigned int _t = limit_support_function(*(void **)((int)_this + 0x368));
+        unsigned short warrior_limit = get_unit_limit((void *)_t, unk_data, side);
+        return warrior_limit >= warrior_count + spawn_count*supply_cost;
+
+    }
+    return true;
+}
+
+void __declspec(naked) ui_check_supply_available_beta_hook()
+{
+    asm("mov %%edi, %%ecx            \n\t"
+        "push -0x74(%%ebp)           \n\t"
+        "push -0x94(%%ebp)           \n\t"
+        "mov -0x90(%%ebp), %%ebx     \n\t"
+        "movzw (%%ebx, %%esi), %%eax \n\t"
+        "push %%eax                  \n\t"
+        "call %P0                    \n\t"
+        "test %%eax, %%eax           \n\t"
+        "jz 1f                       \n\t"
+        "mov -0x90(%%ebp), %%ebx     \n\t"
+        "jmp *%2                     \n\t"
+        "1: jmp *%1                  \n\t":
+        :"i"(check_available_supply), "o"(UPGRADE_UI_CHECK_FAIL_ABSOLUTE), "o"(UPGRADE_UI_CHECK_SUPPLY_FAIL));
 }
 
 void __declspec(naked) get_upgraded_unit_variant_id_hook()
@@ -633,14 +683,6 @@ bool InitializeUnitDescriptionsData()
     return true;
 }
 
-unsigned short IsDarkRace(unsigned char race_id)
-{
-    if ((race_id != 0x1) && (race_id != 0x2) && (race_id != 0x3))
-        {
-            return 1;
-        }
-    return 0;
-}
 
 void __thiscall on_unit_death(void * _this, unsigned short unit_id)
 {
@@ -948,6 +990,9 @@ void HookBetaVersion()
 
     UPGRADE_SPECIAL_FAIL_ABSOLUTE = ASI::AddrOf(0x2D8C8E);
     UPGRADE_SPECIAL_EXEC_ABSOLUTE = ASI::AddrOf(0x2D8D88);
+
+    UPGRADE_UI_CHECK_SUPPLY_FAIL = ASI::AddrOf(0x646528);
+    UPGRADE_UI_CHECK_SUPPLY_EXEC = ASI::AddrOf(0x646771);
     BHANDLE_EXEC = ASI::AddrOf(0x2DB08E);
     BHANDLE_FAIL = ASI::AddrOf(0x2DB077);
 
@@ -967,6 +1012,13 @@ void HookBetaVersion()
     ASI::MemoryRegion building_manager_handle_mreg(ASI::AddrOf(0x2DB070), 7);
 
     ASI::MemoryRegion unit_death_mreg(ASI::AddrOf(0x326F2D), 5);
+    ASI::MemoryRegion ui_supply_check_mreg(ASI::AddrOf(0X646522), 6);
+
+  ASI::BeginRewrite(ui_supply_check_mreg);
+        *(unsigned char*)(ASI::AddrOf(0X646522)) = 0x90;   
+        *(unsigned char*)(ASI::AddrOf(0X646523)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0X646524)) = (int)(&ui_check_supply_available_beta_hook) - ASI::AddrOf(0x646528);
+    ASI::EndRewrite(ui_supply_check_mreg);
 
     ASI::BeginRewrite(unit_death_mreg);
        *(unsigned char*)(ASI::AddrOf(0x326F2D)) = 0xE9;   // jmp instruction
