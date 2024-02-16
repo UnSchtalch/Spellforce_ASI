@@ -684,23 +684,31 @@ bool InitializeUnitDescriptionsData()
 }
 
 
-void __thiscall on_unit_death(void * _this, unsigned short unit_id)
+void __thiscall on_unit_death(void * _this, unsigned short figure_id)
 {
-    unsigned int unit_stat_offset = unit_id*0x2b3;
+    unsigned int unit_stat_offset = figure_id*0x2b3;
     unsigned short *data = *(unsigned short *)(*(int *)((int)_this + 0x1c) + 0x1c + unit_stat_offset);
     unsigned char is_dark_race = IsDarkRace(*(char *)(*(int *)((int)_this + 0x1c) + 0x1a + unit_stat_offset));
     unsigned short upg_unit_id;
     unsigned short spawn_count;
     unsigned short supply_cost;
+    unsigned short unit_id = *(unsigned short *)((int)(*(void **)((int)_this + 0x1c)) + unit_stat_offset + 0x28);
     for (int i = 0; i <= max_upgrade_index; i++)
     {
         if (upg_G.get_spawn_data(i, upg_unit_id, spawn_count, supply_cost))
         {
-            if (supply_cost > 1)
+            if (upg_unit_id == unit_id)
             {
-                for (int j = 0; j < supply_cost-1; j++)
+                if (supply_cost > 1)
                 {
-                    support_functions.free_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race);
+                    for (int j = 0; j < supply_cost-1; j++)
+                    {
+                        support_functions.free_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race);
+                   }
+                }
+                if (supply_cost == 0)
+                {
+
                 }
             }
         }
