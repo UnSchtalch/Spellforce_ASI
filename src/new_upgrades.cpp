@@ -704,11 +704,11 @@ void __thiscall on_unit_death(void * _this, unsigned short figure_id)
                     for (int j = 0; j < supply_cost-1; j++)
                     {
                         support_functions.free_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race);
-                   }
+                    }
                 }
                 if (supply_cost == 0)
                 {
-
+                    support_functions.allocate_army_slot(*(void**)((unsigned int)_this+0x34), (unsigned int)data, is_dark_race); //so we won't overflow here
                 }
             }
         }
