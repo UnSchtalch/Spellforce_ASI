@@ -132,35 +132,6 @@ void __stdcall processBuildingData(int** param_l)
    
 }
 
-
-//Old code for history and debug puposes:
-    /*
-asm(
-
-    "add $0x14, %%esp\n\t"
-    "fldl (%0)\n\t"
-    "push %%ecx\n\t"
-    "push %%ecx\n\t"
-    "fstpl (%%esp)\n\t"
-    "push %3 \n\t"
-    "push $0x0\n\t"
-    "push 8(%%ebp)\n\t"
-    "call %2\n\t"
-    
-    "add  $0x14, %%esp\n\t"
-    "fldl (%1)\n\t"
-    "push %%ecx\n\t"
-    "push %%ecx\n\t"
-    "fstpl (%%esp)\n\t"
-    "push $0x00d19638\n\t"
-    "push $0x0\n\t"
-    "push 8(%%ebp)\n\t"
-    "call %2\n\t"
-    "jmp *%4\n\t" :
-    : "m"(OLD_MAX_BUILDING_VALUE), "m"(NEW_MAX_BUILDING_VALUE), "o"(resourceLoadProb), "m"(new_building_string) ,"m"(BUILD_DATA_RET)
-    );
-    */
-
 void __declspec(naked) building_register_hook(){
     unsigned int param_l = 0;
     asm("push 8(%%ebp)\n\t" //DO NOT CLEAN STACK HERE, it happens later in main code
