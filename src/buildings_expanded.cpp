@@ -13,34 +13,8 @@ unsigned int CARPENTER_JOB_FAIL;
 unsigned int CARPENTER_JOB_EXEC;
 unsigned int JOB_SAWMILL_SELECT_FAIL;
 unsigned int JOB_SAWMILL_SELECT_EXEC;
-unsigned int BUILD_DATA_RET;
-
-
-
-void __stdcall processBuildingData(int** param_l)
-{
-	typedef void (__stdcall *lua_link_string_ptr)(int**, int**, char*, int, int);
-	lua_link_string_ptr lua_link_string = (lua_link_string_ptr) ASI::AddrOf(0xDAB0);
-
-	for (std::vector<ASI::BuildingHookData>::iterator it = buildingHoodDataList.begin();
-        it != buildingHoodDataList.end(); ++it)
-	{
-		lua_link_string(param_l, (int**)0, (it->name), 0, (ASI::convertIntForLua(it->buildingID)) >> 32); //it works, do not touch	
-	}
-}
-
-void __declspec(naked) building_register_hook(){
-    unsigned int param_l = 0;
-    asm("push 8(%%ebp)\n\t" //DO NOT CLEAN STACK HERE, it happens later in main code
-        "pop %0\n\t": "=c"(param_l)
-        :"c"(param_l) );
-
-    processBuildingData((int **)param_l);
-
-    asm("jmp *%0\n\t":
-        :"m"(BUILD_DATA_RET));
-    
-}
+unsigned int SPELL_TYPE_LINK_FAIL;
+unsigned int SPELL_TYPE_LINK_EXEC;
 
 void __declspec(naked) start_working_at_building_hook_beta()
 {
@@ -62,7 +36,8 @@ void __declspec(naked) carpenter_do_work_hook_beta()
 		:"o"(CARPENTER_JOB_FAIL), "o"(CARPENTER_JOB_EXEC));
 }
 
-void __declspec(naked) woodworker_select_delivery_hook_beta (){
+void __declspec(naked) woodworker_select_delivery_hook_beta ()
+{
     asm(
     "movzbl 0x1a(%%ecx,%%ebx), %%eax \n\t"
     "addl %%ebx, %%ecx 				 \n\t" //overwritten code from hook
@@ -73,6 +48,19 @@ void __declspec(naked) woodworker_select_delivery_hook_beta (){
     "1: jmp *%1 					 \n\t":
     : "o"(JOB_SAWMILL_SELECT_EXEC),"o"(JOB_SAWMILL_SELECT_FAIL)
     );
+}
+
+//Hammer Throw mappint to arrow tower
+void __declspec(naked) spell_type_link_hook_beta()
+{
+    asm(
+        "cmpl $0xf1, %%eax 			\n\t"
+        "jne 1f 					\n\t"
+        "movw $0x60, 0x5c(%%edi) 	\n\t"
+        "jmp *%1 					\n\t"
+        "1: cmpb $0xf0, %%al 		\n\t"
+        "jmp *%0 					\n\t":
+        :"o" (SPELL_TYPE_LINK_FAIL), "o" (SPELL_TYPE_LINK_EXEC));
 }
 
 void hookBetaVersion()
@@ -91,7 +79,8 @@ void hookBetaVersion()
 	CARPENTER_JOB_EXEC = ASI::AddrOf(0x2E6AE6);
 	JOB_SAWMILL_SELECT_FAIL = ASI::AddrOf(0x2F1F42);
 	JOB_SAWMILL_SELECT_EXEC = ASI::AddrOf(0x2F1F56);
-	BUILD_DATA_RET = ASI::AddrOf(0x293AEE);
+	SPELL_TYPE_LINK_FAIL = ASI::AddrOf(0x328E48);
+	SPELL_TYPE_LINK_EXEC = ASI::AddrOf(0x329778);
 
 
 	//Overwrite function prologue with nop-trail and jump
@@ -135,38 +124,7 @@ void hookBetaVersion()
     ASI::EndRewrite(mreg_woodworker_select_delivery);
 
 
-    ASI::BeginRewrite(mreg_register_building_string);
-         *(unsigned char*)(ASI::AddrOf(0x293ACF)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x293AD0)) = (int)(&building_register_hook) - ASI::AddrOf(0x293AD4);
-        *(unsigned char*)(ASI::AddrOf(0x293AD4)) = 0x90;   // nop instruction
-        *(unsigned char*)(ASI::AddrOf(0x293AD5)) = 0x90;   // nop instruction
-        *(unsigned char*)(ASI::AddrOf(0x293AD6)) = 0x90;   // nop instruction
-    ASI::EndRewrite(mreg_register_building_string);
-
 }
-
-
-
-void initBuildingData()
-{
-    ASI::BuildingHookData bData;
-
-    bData.buildingID = 50;
-    bData.linkedUnitID = 2997;
-    bData.name = "kGdBuildingDwarfHammerTower\0"; //fixme
-    buildingHoodDataList.push_back(bData);
-
-    bData.buildingID = 54;
-    bData.linkedUnitID = 0;
-    bData.name = "kGdBuildingOrcSawmill\0"; //fixme
-    buildingHoodDataList.push_back(bData);
-
-    bData.buildingID = 214;
-    bData.linkedUnitID = 0;
-    bData.name = "kGdMaxBuildingTypes\0";
-    buildingHoodDataList.push_back(bData);
-}
-
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -183,12 +141,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         {
             return FALSE;
         }
-        //game_window = *(HWND*)(ASI::AddrOf(ASI::WINDOW_OFFSET));
-        initBuildingData();
-        if (ASI::CheckSFVersion(ASI::SF_BETA))
+        else
         {
-                hookBetaVersion();
-                break;
+            hookBetaVersion();
+            break;
         }
     	break;
     }
