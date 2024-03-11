@@ -1,16 +1,16 @@
 #pragma once
 
-unsigned int __thiscall buildingIsSawmillHook(void *param_0, unsigned short param_l)
+unsigned int __thiscall buildingIsSawmillHook(void *_this, unsigned short param_l)
 {
-    unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) param_0);
+    unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) _this);
     if ((building_id != 0x5 ) && (building_id != 0x37) && (building_id != 0x36))
         return 0;
     return 1;
 }
 
-unsigned int __thiscall buildingIsHabitableHook(void *param_0, unsigned short param_l)
+unsigned int __thiscall buildingIsHabitableHook(void *_this, unsigned short param_l)
 {
-	unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) param_0);
+	unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) _this);
  	switch(building_id) {
  	case 4:
  	case 5:
@@ -83,9 +83,9 @@ unsigned int __thiscall buildingIsHabitableHook(void *param_0, unsigned short pa
 
 
 
-unsigned int __thiscall buildingIsHabitableSingleHook(void *param_0, unsigned short param_l)
+unsigned int __thiscall buildingIsHabitableSingleHook(void *_this, unsigned short param_l)
 {
-	unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) param_0);
+	unsigned char building_id = *(unsigned char *)((unsigned int)param_l * 0x34 + 10 + (unsigned int) _this);
 	switch (building_id){
 	case 5:
 	case 6:
@@ -122,4 +122,47 @@ unsigned int __thiscall buildingIsHabitableSingleHook(void *param_0, unsigned sh
   	default:
 		return 0;
   }
+}
+
+
+unsigned int __thiscall buildingIsTowerHook(void * _this, unsigned short param_1)
+{
+  unsigned int uVar1 = 0;
+  switch(*(unsigned char *)((unsigned int)param_1 * 0x34 + 10 + (int)_this)) {
+  case 0xd:
+  case 0x20:
+  case 0x26:
+  case 0x27:
+  case 0x47:
+  case 0x54:
+  case 0x66:
+  case 0x67:
+  case 0x78:
+  case 0x7b:
+  case 0x7c:
+  case 0x92:
+  case 0x93:
+  case 0x95:
+  case 0x97:
+  case 0xa0:
+  case 0xa1:
+  case 0xa3:
+  case 0xa4:
+  case 0xa5:
+  case 0xa6:
+  case 0xa7:
+  case 0xa8:
+  case 0xa9:
+  case 0xaa:
+  case 0xac:
+  case 0xb2:
+  case 0xd1:
+  case 0xd2:
+  case 0xd3:
+  case 0xd4:
+  case 0xd5:
+  case 0x32:
+    uVar1 = 1;
+  }
+  return uVar1;
 }
