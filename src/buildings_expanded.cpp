@@ -15,7 +15,8 @@ unsigned int JOB_SAWMILL_SELECT_FAIL;
 unsigned int JOB_SAWMILL_SELECT_EXEC;
 unsigned int SPELL_TYPE_LINK_FAIL;
 unsigned int SPELL_TYPE_LINK_EXEC;
-unsigned int BUILDING_DONE_EXEC;
+unsigned int BUILDING_DONE_EXEC_T; //tower
+unsigned int BUILDING_DONE_EXEC_S; //sawmill
 unsigned int BUILDING_DONE_FAIL;
 
 void __declspec(naked) start_working_at_building_hook_beta()
@@ -73,8 +74,11 @@ void __declspec(naked) building_done_hook_beta()
 	 	"jne 1f 						\n\t"
 	 	"push $0xBB5 					\n\t"
 	 	"jmp *%0 						\n\t"
-	 	"1: jmp *%1 					\n\t":
-		:"o"(BUILDING_DONE_EXEC), "o"(BUILDING_DONE_FAIL));
+	 	"1: cmpb $0x36, %%al 			\n\t"
+	 	"jne 2f 						\n\t"
+	 	"jmp *%1 						\n\t"
+	 	"2: jmp *%2 					\n\t":
+		:"o"(BUILDING_DONE_EXEC_T), "o" (BUILDING_DONE_EXEC_S), "o"(BUILDING_DONE_FAIL));
 }
 
 void hookBetaVersion()
@@ -99,7 +103,8 @@ void hookBetaVersion()
 	JOB_SAWMILL_SELECT_EXEC = ASI::AddrOf(0x2F1F56);
 	SPELL_TYPE_LINK_FAIL = ASI::AddrOf(0x328E48);
 	SPELL_TYPE_LINK_EXEC = ASI::AddrOf(0x329778);
-	BUILDING_DONE_EXEC = ASI::AddrOf(0x2D9102);
+	BUILDING_DONE_EXEC_T = ASI::AddrOf(0x2D9102);
+	BUILDING_DONE_EXEC_S = ASI::AddrOf(0x2D8F58);
 	BUILDING_DONE_FAIL = ASI::AddrOf(0x2D8ED9);
 
 
