@@ -1,43 +1,52 @@
 #include <windows.h>
 #include "asi/sf_asi.h"
-#include "asi/SF_SpellManager.h"
-#include "asi/SF_SpellData.h"
-#include "asi/SF_GdFigure.h"
-#include "asi/SF_XData.h"
-#include "asi/SF_Unknown.h"
-#include "asi/SF_GdEffect.h"
+
+unsigned int JOB_SELECT_EXEC;
+unsigned int JOB_SELECT_FAIL;
 
 
-unsigned int JOB_SELECT_RET;
-unsigned int JOB_SELECT_CONT;
-
-void __declspec(naked) worker_miner_hook (){
-    asm(
-    "movzbl 0x1a(%%ecx), %%eax\n\t"
-    "dec %%eax\n\t"
-    "cmpb $0x2, %%al\n\t" //are we elves
-    "jne 1f\n\t" //if not -- jump away
-    "movl $0x14, %%ebx\n\t"//we are! looking for our small HQ
-    "jmp *%0\n\t"  //jump away to look for
-    "1: cmpb $0x3, %%al\n\t" //are we trolls?
-    "je 2f\n\t"//if we are - jump forward
-    "jmp *%1\n\t" //we are not, let's get back
-    "2: movl $0x49, %%ebx\n\t"//we are! looking for our small HQ
-    "jmp *%0\n\t":  //jump away to look for
-    : "o"(JOB_SELECT_RET),"m"(JOB_SELECT_CONT)
-    );
+unsigned short __attribute__((no_caller_saved_registers, thiscall)) worker_miner_find_hq(unsigned int *_this, unsigned int param_1)
+{
+    unsigned int local_c = *(unsigned int *)((unsigned int)_this + 0x20) + param_1;
+    unsigned char race_id = *(unsigned char *)(local_c + 0x1a);
+    if (race_id  == 0x03)
+    {
+        //void * (__thiscall *building_get_race)(void *, unsigned int) = ASI::AddrOf(0x2C6820);
+        unsigned short (__thiscall *get_closest_building_id)(void *, unsigned int, unsigned int, unsigned int, unsigned int) = ASI::AddrOf(0x2D97D0);
+        unsigned short building_id = get_closest_building_id (*(void **)((int)_this + 0x10),
+                                   *(unsigned int *)((unsigned int)*(unsigned short *)(local_c + 0x14) * 0x34 + 4 + *(int *)((int)_this + 0xc)), 0x14, 
+                                   (unsigned int)*(unsigned short *)(local_c + 0x1c),0x19);
+        return building_id;
+    }
+    return 0;
 }
 
 
-void hookModernVersion()
+void __declspec(naked) worker_miner_hook_beta()
 {
-	JOB_SELECT_RET = ASI::AddrOf(0x34874C);
-	JOB_SELECT_CONT = ASI::AddrOf(0x3486EE);
-	ASI::MemoryRegion mreg(ASI::AddrOf(0x3486E9), 5); //building selector
+    asm(
+        "mov %%esi, %%ecx       \n\t"
+        "push -0x4(%%ebp)       \n\t" //iVar7
+        "call %P0               \n\t"
+        "movzw %%ax, %%ebx      \n\t"
+        "test %%bx, %%bx        \n\t"
+        "jne 1f                 \n\t"
+        "mov 0x24(%%esi), %%ecx \n\t"
+        "jmp *%1                \n\t"
+        "1: jmp *%2             \n\t":
+       :"i"(worker_miner_find_hq), "o"(JOB_SELECT_FAIL), "o"(JOB_SELECT_EXEC));
+}
+
+void hookBetaVersion()
+{
+    //FIXME!!!
+	JOB_SELECT_EXEC = ASI::AddrOf(0x2EFF42);
+	JOB_SELECT_FAIL = ASI::AddrOf(0x2F0009);
+	ASI::MemoryRegion mreg(ASI::AddrOf(0x2F0004), 5); //building selector
 
 	ASI::BeginRewrite(mreg);
-        *(unsigned char*)(ASI::AddrOf(0x3486E9)) = 0xE9;   // jmp instruction
-        *(int*)(ASI::AddrOf(0x3486EA)) = (int)(&worker_miner_hook) - ASI::AddrOf(0x3486EE);
+        *(unsigned char*)(ASI::AddrOf(0x2F0004)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2F0005)) = (int)(&worker_miner_hook_beta) - ASI::AddrOf(0x2F0009);
     ASI::EndRewrite(mreg);
 }
 
@@ -53,22 +62,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         if (!ASI::Init(hModule))
             return FALSE;
         //!ASI::CheckSFVersion(ASI::SF_154) &&
-        if (!ASI::CheckSFVersion(ASI::SF_161))
+        if (!ASI::CheckSFVersion(ASI::SF_BETA))
         {
             return FALSE;
         }
-        //game_window = *(HWND*)(ASI::AddrOf(ASI::WINDOW_OFFSET));
-  
-
-        /*if (ASI::CheckSFVersion(ASI::SF_154))
+        else 
         {
-                hookLegacyVersion();
-                break;
-        }*/
-        if (ASI::CheckSFVersion(ASI::SF_161))
-        {
-                hookModernVersion();
-                break;
+            hookBetaVersion();
+            break;
         }
      break;
     }
