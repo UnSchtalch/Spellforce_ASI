@@ -31,7 +31,7 @@ unsigned int __thiscall find_closest_building(unsigned int *_this, unsigned int 
     unsigned short best_id = 0;
 
     prepare_building_mask (&mask, 0,0, 0x3ff, 0x3ff);
-    unsigned int local_c = *(unsigned int *)(*(void **)((int)_this + 0x10));
+    unsigned int local_c = (unsigned int)(*(void **)((int)_this + 0x10));
     init_building_mask(&mask, *(unsigned int *)((int)local_c + 0xc), *(unsigned int *)((int)local_c + 0x3c), *(unsigned int *)((int)local_c + 0x40));
     query_entities_in_radius(&mask, &figure_coords, 0x1f); //hardcode the radius
     specify_building(&mask, building_type);
