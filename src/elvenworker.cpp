@@ -117,11 +117,12 @@ void __declspec(naked) worker_woodcutter_hook_beta()
         "push %%edi             \n\t"
         "push -0x4(%%ebp)       \n\t" //iVar7
         "call %P0               \n\t"
-        "movzw %%ax, %%ebx      \n\t"
-        "test %%bx, %%bx        \n\t"
+        "test %%ax, %%ax        \n\t"
         "jne 1f                 \n\t"
+        "mov 0x20(%%esi), %%ecx \n\t"
         "jmp *%1                \n\t"
-        "1: jmp *%2             \n\t"
+        "1: movzw %%ax, %%ebx   \n\t"
+        "jmp *%2                \n\t"
         "2: jmp *%3             \n\t":
        :"i"(worker_miner_find_hq), "o"(JOB_WOOD_SELECT_FAIL), "o"(JOB_WOOD_SELECT_EXEC), "o"(JOB_WOOD_SELECT_FAIL_2));
 }
