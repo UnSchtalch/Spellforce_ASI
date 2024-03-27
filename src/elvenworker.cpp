@@ -1,9 +1,12 @@
 #include <windows.h>
 #include "asi/sf_asi.h"
 
-unsigned int JOB_SELECT_EXEC;
-unsigned int JOB_SELECT_FAIL;
-unsigned int JOB_SELECT_FAIL_2;
+unsigned int JOB_IRON_SELECT_EXEC;
+unsigned int JOB_IRON_SELECT_FAIL;
+unsigned int JOB_IRON_SELECT_FAIL_2;
+unsigned int JOB_WOOD_SELECT_EXEC;
+unsigned int JOB_WOOD_SELECT_FAIL;
+unsigned int JOB_WOOD_SELECT_FAIL_2;
 
 unsigned int (__thiscall *get_figure_xdata)(void *, unsigned int, unsigned int);
 unsigned int (__thiscall *prepare_building_mask)(void *, unsigned short, unsigned short, unsigned short, unsigned short);
@@ -102,7 +105,25 @@ void __declspec(naked) worker_miner_hook_beta()
         "jmp *%1                \n\t"
         "1: jmp *%2             \n\t"
         "2: jmp *%3             \n\t":
-       :"i"(worker_miner_find_hq), "o"(JOB_SELECT_FAIL), "o"(JOB_SELECT_EXEC), "o"(JOB_SELECT_FAIL_2));
+       :"i"(worker_miner_find_hq), "o"(JOB_IRON_SELECT_FAIL), "o"(JOB_IRON_SELECT_EXEC), "o"(JOB_IRON_SELECT_FAIL_2));
+}
+
+void __declspec(naked) worker_woodcutter_hook_beta()
+{
+    asm(
+        "cmpb $0x2, %%al        \n\t"
+        "jne 2f                 \n\t"
+        "mov %%esi, %%ecx       \n\t"
+        "push %%edi             \n\t"
+        "push -0x4(%%ebp)       \n\t" //iVar7
+        "call %P0               \n\t"
+        "movzw %%ax, %%ebx      \n\t"
+        "test %%bx, %%bx        \n\t"
+        "jne 1f                 \n\t"
+        "jmp *%1                \n\t"
+        "1: jmp *%2             \n\t"
+        "2: jmp *%3             \n\t":
+       :"i"(worker_miner_find_hq), "o"(JOB_WOOD_SELECT_FAIL), "o"(JOB_WOOD_SELECT_EXEC), "o"(JOB_WOOD_SELECT_FAIL_2));
 }
 
 void hookBetaVersion()
@@ -116,18 +137,31 @@ void hookBetaVersion()
     get_next_building_from_mask = ASI::AddrOf(0x318CA0);
 
     //FIXME!!!
-	JOB_SELECT_EXEC = ASI::AddrOf(0x2EFF42);
-	JOB_SELECT_FAIL = ASI::AddrOf(0x2F0004);
-    JOB_SELECT_FAIL_2 = ASI::AddrOf(0x2EFEB1);
-	ASI::MemoryRegion mreg(ASI::AddrOf(0x2EFEA9), 8); //building selector
+	JOB_IRON_SELECT_EXEC = ASI::AddrOf(0x2EFF42);
+	JOB_IRON_SELECT_FAIL = ASI::AddrOf(0x2F0004);
+    JOB_IRON_SELECT_FAIL_2 = ASI::AddrOf(0x2EFEB1);
+	ASI::MemoryRegion iron_mreg(ASI::AddrOf(0x2EFEA9), 8); //building selector
 
-	ASI::BeginRewrite(mreg);
+    JOB_WOOD_SELECT_EXEC = ASI::AddrOf(0x2F1F74);
+    JOB_WOOD_SELECT_FAIL = ASI::AddrOf(0x2F2041);
+    JOB_WOOD_SELECT_FAIL_2 = ASI::AddrOf(0x2F1F3B);
+    ASI::MemoryRegion wood_mreg(ASI::AddrOf(0x2F1F33), 8); //building selector
+
+	ASI::BeginRewrite(iron_mreg);
         *(unsigned char*)(ASI::AddrOf(0x2EFEA9)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x2EFEAA)) = (int)(&worker_miner_hook_beta) - ASI::AddrOf(0x2EFEAE);
         *(unsigned char*)(ASI::AddrOf(0x2EFEAE)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2EFEAF)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2EFEB0)) = 0x90;   // nop trail
-    ASI::EndRewrite(mreg);
+    ASI::EndRewrite(iron_mreg);
+
+    ASI::BeginRewrite(wood_mreg);
+         *(unsigned char*)(ASI::AddrOf(0x2F1F33)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2F1F34)) = (int)(&worker_woodcutter_hook_beta) - ASI::AddrOf(0x2F1F38);
+        *(unsigned char*)(ASI::AddrOf(0x2F1F38)) = 0x90;   // nop trail
+        *(unsigned char*)(ASI::AddrOf(0x2F1F39)) = 0x90;   // nop trail
+        *(unsigned char*)(ASI::AddrOf(0x2F1F3A)) = 0x90;   // nop trail
+    ASI::EndRewrite(wood_mreg);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
