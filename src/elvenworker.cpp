@@ -13,6 +13,9 @@ unsigned int JOB_WOOD_SELECT_EXEC;
 unsigned int JOB_WOOD_SELECT_FAIL;
 unsigned int JOB_WOOD_SELECT_FAIL_2;
 
+
+unsigned int DELIVERY_STONEMASON_RET;
+
 unsigned int (__thiscall *prepare_building_mask)(void *, unsigned short, unsigned short, unsigned short, unsigned short);
 unsigned int (__thiscall *query_entities_in_radius)(void *,unsigned int *, unsigned short);
 unsigned int (__thiscall *init_building_mask)(void *, unsigned int, unsigned int, unsigned int);
@@ -149,6 +152,16 @@ void __declspec(naked) worker_woodcutter_hook_beta()
        :"i"(worker_miner_find_hq), "o"(JOB_WOOD_SELECT_FAIL), "o"(JOB_WOOD_SELECT_EXEC), "o"(JOB_WOOD_SELECT_FAIL_2));
 }
 
+void __declspec(naked) stonemason_coordinates_hook_beta()
+{
+    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+        "mov 0x20(%%esi), %%eax    \n\t"
+        "push 0x2(%%eax, %%ecx)    \n\t"
+        "mov 0x10(%%esi), %%ecx    \n\t"
+        "jmp *%0                   \n\t":
+        :"o" (DELIVERY_STONEMASON_RET));
+}
+
 void hookBetaVersion()
 {
     prepare_building_mask = ASI::AddrOf(0x318290);
@@ -173,6 +186,10 @@ void hookBetaVersion()
     JOB_STONE_SELECT_FAIL_2 = ASI::AddrOf(0x2F0CE1);
     ASI::MemoryRegion stone_mreg(ASI::AddrOf(0x2F0CD9), 8); //building selector
 
+
+    DELIVERY_STONEMASON_RET = ASI::AddrOf(0x2F0D17);
+    ASI::MemoryRegion stonemason_delivery_mreg(ASI::AddrOf(0x2F0D10), 7);
+
 	ASI::BeginRewrite(iron_mreg);
         *(unsigned char*)(ASI::AddrOf(0x2EFEA9)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x2EFEAA)) = (int)(&worker_miner_hook_beta) - ASI::AddrOf(0x2EFEAE);
@@ -182,7 +199,7 @@ void hookBetaVersion()
     ASI::EndRewrite(iron_mreg);
 
     ASI::BeginRewrite(wood_mreg);
-         *(unsigned char*)(ASI::AddrOf(0x2F1F33)) = 0xE9;   // jmp instruction
+        *(unsigned char*)(ASI::AddrOf(0x2F1F33)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x2F1F34)) = (int)(&worker_woodcutter_hook_beta) - ASI::AddrOf(0x2F1F38);
         *(unsigned char*)(ASI::AddrOf(0x2F1F38)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2F1F39)) = 0x90;   // nop trail
@@ -190,12 +207,19 @@ void hookBetaVersion()
     ASI::EndRewrite(wood_mreg);
 
     ASI::BeginRewrite(stone_mreg);
-         *(unsigned char*)(ASI::AddrOf(0x2F0CD9)) = 0xE9;   // jmp instruction
+        *(unsigned char*)(ASI::AddrOf(0x2F0CD9)) = 0xE9;   // jmp instruction
         *(int*)(ASI::AddrOf(0x2F0CDA)) = (int)(&worker_stoneworker_hook_beta) - ASI::AddrOf(0x2F0CDE);
         *(unsigned char*)(ASI::AddrOf(0x2F0CDE)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2F0CDF)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2F0CE0)) = 0x90;   // nop trail
     ASI::EndRewrite(stone_mreg);
+
+    ASI::BeginRewrite(stonemason_delivery_mreg);
+        *(unsigned char*)(ASI::AddrOf(0x2F0D10)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2F0D11)) = (int)(&stonemason_coordinates_hook_beta) - ASI::AddrOf(0x2F0D15);
+        *(unsigned char*)(ASI::AddrOf(0x2F0D15)) = 0x90;   // nop trail
+        *(unsigned char*)(ASI::AddrOf(0x2F0D16)) = 0x90;   // nop trail
+    ASI::EndRewrite(stonemason_delivery_mreg);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
