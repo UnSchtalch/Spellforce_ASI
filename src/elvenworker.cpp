@@ -15,6 +15,9 @@ unsigned int JOB_WOOD_SELECT_FAIL_2;
 
 
 unsigned int DELIVERY_STONEMASON_RET;
+unsigned int DELIVERY_SAWMILL_RET;
+unsigned int DELIVERY_SMELTERY_RET;
+
 
 unsigned int (__thiscall *prepare_building_mask)(void *, unsigned short, unsigned short, unsigned short, unsigned short);
 unsigned int (__thiscall *query_entities_in_radius)(void *,unsigned int *, unsigned short);
@@ -162,6 +165,26 @@ void __declspec(naked) stonemason_coordinates_hook_beta()
         :"o" (DELIVERY_STONEMASON_RET));
 }
 
+void __declspec(naked) sawmill_coordinates_hook_beta()
+{
+    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+        "mov 0x20(%%esi), %%eax    \n\t"
+        "push 0x2(%%eax, %%ecx)    \n\t"
+        "mov 0x10(%%esi), %%ecx    \n\t"
+        "jmp *%0                   \n\t":
+        :"o" (DELIVERY_SAWMILL_RET));
+}
+
+void __declspec(naked) smeltery_coordinates_hook_beta()
+{
+    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+        "mov 0x20(%%esi), %%eax    \n\t"
+        "push 0x2(%%eax, %%ecx)    \n\t"
+        "mov 0x10(%%esi), %%ecx    \n\t"
+        "jmp *%0                   \n\t":
+        :"o" (DELIVERY_SMELTERY_RET));
+}
+
 void hookBetaVersion()
 {
     prepare_building_mask = ASI::AddrOf(0x318290);
@@ -189,6 +212,12 @@ void hookBetaVersion()
 
     DELIVERY_STONEMASON_RET = ASI::AddrOf(0x2F0D17);
     ASI::MemoryRegion stonemason_delivery_mreg(ASI::AddrOf(0x2F0D10), 7);
+
+    DELIVERY_SAWMILL_RET = ASI::AddrOf(0x2F1F6F);
+    ASI::MemoryRegion sawmill_delivery_mreg(ASI::AddrOf(0x2F1F68), 7);
+
+    DELIVERY_SMELTERY_RET = ASI::AddrOf(0x2EFF35);
+    ASI::MemoryRegion smeltery_delivery_mreg(ASI::AddrOf(0x2EFF2E), 7);
 
 	ASI::BeginRewrite(iron_mreg);
         *(unsigned char*)(ASI::AddrOf(0x2EFEA9)) = 0xE9;   // jmp instruction
@@ -220,6 +249,21 @@ void hookBetaVersion()
         *(unsigned char*)(ASI::AddrOf(0x2F0D15)) = 0x90;   // nop trail
         *(unsigned char*)(ASI::AddrOf(0x2F0D16)) = 0x90;   // nop trail
     ASI::EndRewrite(stonemason_delivery_mreg);
+
+    ASI::BeginRewrite(sawmill_delivery_mreg);
+        *(unsigned char*)(ASI::AddrOf(0x2F1F68)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2F1F69)) = (int)(&sawmill_coordinates_hook_beta) - ASI::AddrOf(0x2F1F6D);
+        *(unsigned char*)(ASI::AddrOf(0x2F1F6D)) = 0x90;   // nop trail
+        *(unsigned char*)(ASI::AddrOf(0x2F1F6E)) = 0x90;   // nop trail
+    ASI::EndRewrite(sawmill_delivery_mreg);
+
+
+    ASI::BeginRewrite(smeltery_delivery_mreg);
+        *(unsigned char*)(ASI::AddrOf(0x2EFF2E)) = 0xE9;   // jmp instruction
+        *(int*)(ASI::AddrOf(0x2EFF2F)) = (int)(&smeltery_coordinates_hook_beta) - ASI::AddrOf(0x2EFF33);
+        *(unsigned char*)(ASI::AddrOf(0x2EFF33)) = 0x90;   // nop trail
+        *(unsigned char*)(ASI::AddrOf(0x2EFF34)) = 0x90;   // nop trail
+    ASI::EndRewrite(smeltery_delivery_mreg);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
