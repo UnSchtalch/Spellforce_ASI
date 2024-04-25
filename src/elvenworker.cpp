@@ -157,7 +157,9 @@ void __declspec(naked) worker_woodcutter_hook_beta()
 
 void __declspec(naked) stonemason_coordinates_hook_beta()
 {
-    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+    asm(
+        "movzw %%di, %%ebx         \n\t"
+        "imul $0x2B3, %%ebx, %%ecx \n\t"
         "mov 0x20(%%esi), %%eax    \n\t"
         "push 0x2(%%eax, %%ecx)    \n\t"
         "mov 0x10(%%esi), %%ecx    \n\t"
@@ -167,7 +169,9 @@ void __declspec(naked) stonemason_coordinates_hook_beta()
 
 void __declspec(naked) sawmill_coordinates_hook_beta()
 {
-    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+    asm(
+        "movzw %%di, %%ebx         \n\t"
+        "imul $0x2B3, %%ebx, %%ecx \n\t"
         "mov 0x20(%%esi), %%eax    \n\t"
         "push 0x2(%%eax, %%ecx)    \n\t"
         "mov 0x10(%%esi), %%ecx    \n\t"
@@ -177,7 +181,9 @@ void __declspec(naked) sawmill_coordinates_hook_beta()
 
 void __declspec(naked) smeltery_coordinates_hook_beta()
 {
-    asm("imul $0x2B3, %%edi, %%ecx  \n\t"
+    asm(
+        "movzw %%di, %%ebx         \n\t"
+        "imul $0x2B3, %%ebx, %%ecx \n\t"
         "mov 0x20(%%esi), %%eax    \n\t"
         "push 0x2(%%eax, %%ecx)    \n\t"
         "mov 0x10(%%esi), %%ecx    \n\t"
