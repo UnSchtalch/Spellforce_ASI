@@ -2,6 +2,7 @@ BUILDEX_OBJS = obj/sf_asi.o obj/dllmain.o
 BUILDEXP_OBJS = obj/sf_asi.o obj/buildings_expanded.o
 NEWUPGD_OBJ = obj/sf_asi.o obj/new_upgrades.o
 ELVEN_OBJ = obj/sf_asi.o obj/elvenworker.o
+FREEGAME_OBJ = obj/sf_asi.o obj/freegame_loot.o
 CC = g++
 RC = windres
 
@@ -11,10 +12,10 @@ DLL1_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-
 DLL2_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/new_upgrades.a
 DLL3_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/buildexp.a
 DLL4_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/elvenworker.a
-
+DLL_LOOT_LDFLAGS = -shared -static-libgcc -static-libstdc++ -s -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -Wl,--subsystem,windows,--out-implib,lib/freegame_loot.a
 .PHONY: all clean
 
-all: bin/new_upgrades.asi bin/buildexp.asi bin/elvenworker.asi
+all: bin/new_upgrades.asi bin/buildexp.asi bin/elvenworker.asi bin/freegame_loot.asi
 clean:
 	if exist bin\* del /q bin\*
 	if exist lib\* del /q lib\*
@@ -38,6 +39,9 @@ obj/new_upgrades.o: src/new_upgrades.cpp src/asi/sf_asi.h | obj
 obj/elvenworker.o: src/elvenworker.cpp src/asi/sf_asi.h | obj
 	${CC} -mgeneral-regs-only ${DLL_CFLAGS} -c "$<" -o "$@"
 
+obj/freegame_loot.o: src/freegame_loot.cpp src/asi/sf_asi.h | obj
+	${CC} ${DLL_CFLAGS} -c "$<" -o "$@"
+
 
 bin/elvenworker.asi: $(ELVEN_OBJ)| bin lib
 	${CC} -o "$@" ${ELVEN_OBJ} ${DLL4_LDFLAGS}
@@ -51,3 +55,7 @@ bin/buildext.asi: ${BUILDEX_OBJS}| bin lib
 
 bin/buildexp.asi:  ${BUILDEXP_OBJS}| bin lib
 	${CC} -o "$@" ${BUILDEXP_OBJS} ${DLL3_LDFLAGS}
+
+
+bin/freegame_loot.asi:  ${FREEGAME_OBJ}| bin lib
+	${CC} -o "$@" ${FREEGAME_OBJ} ${DLL_LOOT_LDFLAGS}
