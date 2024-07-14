@@ -51,16 +51,20 @@ unsigned int __thiscall find_closest_building(unsigned int *_this, unsigned int 
     building_id = get_next_building_from_mask(mask);
     while (building_id != 0)
     {
-
-        unsigned int building_coordinates = *(unsigned int *)(((building_id & 0xffff) * 0x34) + *(unsigned int *)((int)_this + 0xc) + 0x4);
-        short dx = figure_x - (building_coordinates & 0xffff);
-        short dy = figure_y - (building_coordinates >> 0x10);
-        if (dx < 0) { dx = 0 - dx;}
-        if (dy < 0) { dy = 0 - dy;}
-        if (calculate_norm(dx, dy) < last_norm)
+        unsigned char building_flags = *(unsigned char *)(((building_id & 0xffff) * 0x34) + *(unsigned int *)((int)_this + 0xc) + 0xc);
+        unsigned short building_health = *(unsigned short *)(((building_id & 0xffff) * 0x34) + *(unsigned int *)((int)_this + 0xc) + 0x11);
+        if ((building_flags & 0x1 != 0x0) && (building_health != 0))
         {
-            last_norm = calculate_norm(dx, dy);
-            best_id = building_id;
+            unsigned int building_coordinates = *(unsigned int *)(((building_id & 0xffff) * 0x34) + *(unsigned int *)((int)_this + 0xc) + 0x4);
+            short dx = figure_x - (building_coordinates & 0xffff);
+            short dy = figure_y - (building_coordinates >> 0x10);
+            if (dx < 0) { dx = 0 - dx;}
+            if (dy < 0) { dy = 0 - dy;}
+            if (calculate_norm(dx, dy) < last_norm)
+            {
+                last_norm = calculate_norm(dx, dy);
+                best_id = building_id;
+            }
         }
         building_id = get_next_building_from_mask(&mask[0]);
     }
